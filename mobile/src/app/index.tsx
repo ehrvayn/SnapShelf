@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRef, useState } from "react";
 import { Button, Text, TouchableOpacity, View } from "react-native";
-import { getItemsByStatus, insertItem } from "../db/items";
+import { getAllItems, insertItem, saveExtractedData } from "../db/items";
 import { savePhotoPermanently } from "../services/photos";
 import { router } from "expo-router";
 import { uploadPhoto } from "../services/upload";
@@ -29,16 +29,19 @@ export default function CameraScreen() {
     if (photo) {
       const permanentUri = savePhotoPermanently(photo.uri);
       setLastPhoto(permanentUri);
-      await insertItem(permanentUri);
+      const itemId = await insertItem(permanentUri);
 
       try {
         const result = await uploadPhoto(permanentUri);
+        if (result.ok) {
+          await saveExtractedData(itemId, result.extracted);
+        }
         console.log("Upload result:", result);
       } catch (err) {
         console.log("Upload failed (offline?):", err);
       }
 
-      const items = await getItemsByStatus("uploaded");
+      const items = await getAllItems();
       console.log("Items in DB:", items);
     }
   };

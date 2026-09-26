@@ -8,8 +8,11 @@ const EXTRACTION_PROMPT = `Look at this photo and extract information as JSON.
                         "category": "bill" | "school" | "work" | "promo" | "receipt" | "other",
                         "title": string,
                         "deadline": string or null (ISO 8601 date, e.g. "2026-01-31"),
-                        "fields": { "key": "value" }
-                        }`;
+                        "fields": {
+                            "key_name": { "value": string, "confidence": number between 0 and 1 }
+                        }
+                        }
+                        Confidence should reflect how certain you are that the value was read correctly, based on image clarity, legibility, and ambiguity.`;
 
 export async function extractDataFromImage(buffer: Buffer, mimeType: string) {
   const base64Image = buffer.toString("base64");

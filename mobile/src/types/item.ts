@@ -21,3 +21,19 @@ export interface Item {
   created_at: string;
   updated_at: string;
 }
+
+export interface ItemField {
+  id: number;
+  item_id: string;
+  key: string;
+  value: string | null;
+  confidence: number | null;
+  user_edited: number;
+}
+
+export interface ExtractedData {
+  category: string;
+  title: string;
+  deadline: string | null;
+  fields: Record<string, { value: string; confidence: number }>;
+}
