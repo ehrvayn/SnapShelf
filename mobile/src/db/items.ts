@@ -29,6 +29,13 @@ export async function getAllItems(): Promise<Item[]> {
   return db.getAllAsync<Item>("SELECT * FROM items ORDER BY created_at DESC");
 }
 
+export async function getItemFields(itemId: string) {
+  const db = await getDb();
+  return db.getAllAsync("SELECT * FROM item_fields WHERE item_id = ?", [
+    itemId,
+  ]);
+}
+
 export async function getUpcomingItems(): Promise<Item[]> {
   const db = await getDb();
   return db.getAllAsync<Item>(

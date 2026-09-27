@@ -26,16 +26,7 @@ export default function Home() {
       keyExtractor={(item) => item.id}
       contentContainerStyle={{ padding: 16 }}
       renderSectionHeader={({ section }) => (
-        <Text
-          style={{
-            fontSize: 18,
-            fontWeight: "700",
-            marginTop: 16,
-            marginBottom: 8,
-          }}
-        >
-          {section.title}
-        </Text>
+        <Text className="text-red-500 text-3xl">{section.title}</Text>
       )}
       renderSectionFooter={({ section }) =>
         section.data.length === 0 ? (
