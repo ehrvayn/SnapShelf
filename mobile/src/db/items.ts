@@ -1,6 +1,6 @@
 import { randomUUID } from "expo-crypto";
 import { getDb } from "./index";
-import { Item, ItemStatus, ExtractedData } from "../types/item";
+import { Item, ItemStatus, ExtractedData, ItemField } from "../types/item";
 
 export async function insertItem(uri: string): Promise<string> {
   const db = await getDb();
@@ -29,11 +29,13 @@ export async function getAllItems(): Promise<Item[]> {
   return db.getAllAsync<Item>("SELECT * FROM items ORDER BY created_at DESC");
 }
 
-export async function getItemFields(itemId: string) {
+export async function getItemFields(itemId: string): Promise<ItemField[]> {
+  if (!itemId) return [];
   const db = await getDb();
-  return db.getAllAsync("SELECT * FROM item_fields WHERE item_id = ?", [
-    itemId,
-  ]);
+  return db.getAllAsync<ItemField>(
+    "SELECT * FROM item_fields WHERE item_id = ?",
+    [itemId],
+  );
 }
 
 export async function getUpcomingItems(): Promise<Item[]> {
@@ -46,6 +48,7 @@ export async function getUpcomingItems(): Promise<Item[]> {
 }
 
 export async function getItemById(id: string): Promise<Item | null> {
+  if (!id) return null;
   const db = await getDb();
   return db.getFirstAsync<Item>("SELECT * FROM items WHERE id = ?", [id]);
 }

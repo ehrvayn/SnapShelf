@@ -16,21 +16,29 @@ export default function Home() {
   );
 
   const sections = [
-    { title: `To confirm (${pending.length})`, data: pending },
-    { title: "Upcoming", data: upcoming },
+    { title: `To Confirm (${pending.length})`, data: pending },
   ];
 
   return (
     <SectionList
       sections={sections}
       keyExtractor={(item) => item.id}
-      contentContainerStyle={{ padding: 16 }}
+      className="flex-1 bg-white"
+      contentContainerClassName="p-5 pb-12 gap-1"
       renderSectionHeader={({ section }) => (
-        <Text className="text-red-500 text-3xl">{section.title}</Text>
+        <View className="py-3 bg-white">
+          <Text className="text-xs font-bold uppercase tracking-wider text-gray-400">
+            {section.title}
+          </Text>
+        </View>
       )}
       renderSectionFooter={({ section }) =>
         section.data.length === 0 ? (
-          <Text style={{ color: "#888" }}>Nothing here yet.</Text>
+          <View className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+            <Text className="text-sm text-gray-400 font-medium">
+              Nothing here yet.
+            </Text>
+          </View>
         ) : null
       }
       renderItem={({ item }) => (
@@ -38,10 +46,13 @@ export default function Home() {
           onPress={() =>
             router.push({ pathname: "/review/[id]", params: { id: item.id } })
           }
-          style={{ paddingVertical: 10 }}
+          className="bg-gray-50 border border-gray-300 p-4 mb-3 gap-1"
+          activeOpacity={0.7}
         >
-          <Text style={{ fontWeight: "600" }}>{item.title ?? "Untitled"}</Text>
-          <Text>
+          <Text className="text-base font-bold text-gray-900">
+            {item.title ?? "Untitled"}
+          </Text>
+          <Text className="text-xs font-medium text-gray-400">
             {item.deadline_at
               ? new Date(item.deadline_at).toDateString()
               : "No deadline"}
