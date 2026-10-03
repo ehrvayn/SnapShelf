@@ -67,10 +67,10 @@ export default function CameraScreen() {
         }}
       >
         <TouchableOpacity
-          onPress={() => router.push("/library")}
+          onPress={() => router.push("/home")}
           style={{ position: "absolute", right: 50, bottom: 30 }}
         >
-          <Text style={{ color: "white" }}>Library</Text>
+          <Text style={{ color: "white" }}>Home</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -84,13 +84,6 @@ export default function CameraScreen() {
             borderColor: "#999",
           }}
         />
-
-        <TouchableOpacity
-          onPress={() => router.push("/home")}
-          style={{ position: "absolute", left: 50, bottom: 30 }}
-        >
-          <Text style={{ color: "white" }}>Home</Text>
-        </TouchableOpacity>
 
         {lastPhoto && (
           <Text style={{ color: "white", marginTop: 8 }}>Photo saved</Text>

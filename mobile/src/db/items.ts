@@ -83,3 +83,36 @@ export async function saveExtractedData(
     );
   }
 }
+
+export async function updateItemStatus(
+  itemId: string,
+  status: string,
+): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    `UPDATE items SET status = ?, updated_at = ? WHERE id = ?`,
+    [status, new Date().toISOString(), itemId],
+  );
+}
+
+export async function updateItem(
+  itemId: string,
+  itemData: { title: string | null; deadline: string | null },
+): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    `UPDATE items SET title = ?, deadline_at = ?, updated_at = ? WHERE id = ?`,
+    [itemData.title, itemData.deadline, new Date().toISOString(), itemId],
+  );
+}
+
+export async function updateItemField(
+  fieldId: number,
+  value: string,
+): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    `UPDATE item_fields SET value = ?, user_edited = 1 WHERE id = ?`,
+    [value, fieldId],
+  );
+}
