@@ -1,17 +1,20 @@
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   Image,
   Platform,
-  Text,
-  View,
   ScrollView,
-  TouchableOpacity,
+  Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DeleteItemModal from "../../components/modal/DeleteItemModal";
 import {
+  deleteItem,
   getItemById,
   getItemFields,
   updateItem,
@@ -24,6 +27,8 @@ export default function Review() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [editedValues, setEditedValues] = useState<Record<number, string>>({});
   const [editedTitle, setEditedTitle] = useState("");
   const [editedDeadline, setEditedDeadline] = useState<Date | null>(null);
@@ -132,28 +137,54 @@ export default function Review() {
     }
   };
 
+  const handleDelete = async () => {
+    if (isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await deleteItem(id);
+      setShowDelete(false);
+      router.back();
+      queryClient.removeQueries({ queryKey: ["item", id] });
+      queryClient.removeQueries({ queryKey: ["itemFields", id] });
+    } catch {
+      setIsDeleting(false);
+      setShowDelete(false);
+    }
+  };
+
   return (
     <>
       <Stack.Screen
         options={{
           title: needsReview ? "Review" : "Details",
-          headerRight: () =>
-            !needsReview ? (
+          headerRight: () => (
+            <View className="flex-row items-center gap-5">
+              {!needsReview && (
+                <TouchableOpacity
+                  disabled={isSaving}
+                  onPress={() => {
+                    if (isEditing) {
+                      handleSave();
+                    } else {
+                      setIsEditing(true);
+                    }
+                  }}
+                >
+                  <Text className="text-indigo-600 font-semibold text-base">
+                    {isSaving ? "Saving..." : isEditing ? "Save" : "Edit"}
+                  </Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
+                activeOpacity={0.7}
                 disabled={isSaving}
-                onPress={() => {
-                  if (isEditing) {
-                    handleSave();
-                  } else {
-                    setIsEditing(true);
-                  }
-                }}
+                onPress={() => setShowDelete(true)}
+                hitSlop={10}
               >
-                <Text className="text-indigo-600 font-semibold text-base">
-                  {isSaving ? "Saving..." : isEditing ? "Save" : "Edit"}
-                </Text>
+                <Ionicons name="trash-outline" size={22} color="#dc2626" />
               </TouchableOpacity>
-            ) : null,
+            </View>
+          ),
         }}
       />
 
@@ -304,6 +335,13 @@ export default function Review() {
           </TouchableOpacity>
         )}
       </ScrollView>
+
+      <DeleteItemModal
+        visible={showDelete}
+        deleting={isDeleting}
+        onCancel={() => setShowDelete(false)}
+        onConfirm={handleDelete}
+      />
     </>
   );
 }

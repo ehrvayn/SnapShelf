@@ -116,3 +116,15 @@ export async function updateItemField(
     [value, fieldId],
   );
 }
+
+export async function deleteItem(itemId: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(`DELETE FROM items WHERE id = ?`, [itemId]);
+}
+
+export async function deleteItems(itemIds: string[]): Promise<void> {
+  if (itemIds.length === 0) return;
+  const db = await getDb();
+  const placeholders = itemIds.map(() => "?").join(",");
+  await db.runAsync(`DELETE FROM items WHERE id IN (${placeholders})`, itemIds);
+}
