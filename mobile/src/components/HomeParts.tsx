@@ -40,36 +40,6 @@ export function HomeHeader({ pendingCount }: { pendingCount: number }) {
             : "You're all caught up"}
         </Text>
       </View>
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={() => router.push("/library")}
-        className="flex-row items-center gap-1.5 bg-white border border-gray-200 rounded-full px-4 py-2.5 shadow-sm"
-      >
-        <Ionicons name="albums-outline" size={16} color="#4f46e5" />
-        <Text className="text-indigo-600 font-semibold text-sm">Library</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-function StatTile(p: {
-  value: number;
-  label: string;
-  icon: IconName;
-  color: string;
-  tint: string;
-}) {
-  return (
-    <View className="flex-1 bg-white border border-gray-200 rounded-2xl p-3.5 gap-2">
-      <View
-        className={`w-8 h-8 rounded-lg items-center justify-center ${p.tint}`}
-      >
-        <Ionicons name={p.icon} size={18} color={p.color} />
-      </View>
-      <View>
-        <Text className="text-2xl font-extrabold text-gray-900">{p.value}</Text>
-        <Text className="text-xs font-medium text-gray-400">{p.label}</Text>
-      </View>
     </View>
   );
 }

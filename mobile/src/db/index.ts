@@ -1,13 +1,19 @@
 import * as SQLite from "expo-sqlite";
 
-let db: SQLite.SQLiteDatabase | null = null;
+let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-export async function getDb() {
-  if (!db) {
-    db = await SQLite.openDatabaseAsync("snapshelf.db");
-    await migrate(db);
+export function getDb() {
+  if (!dbPromise) {
+    dbPromise = (async () => {
+      const db = await SQLite.openDatabaseAsync("snapshelf.db");
+      await migrate(db);
+      return db;
+    })().catch((err) => {
+      dbPromise = null;
+      throw err;
+    });
   }
-  return db;
+  return dbPromise;
 }
 
 async function migrate(db: SQLite.SQLiteDatabase) {

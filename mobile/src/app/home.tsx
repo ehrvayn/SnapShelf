@@ -14,26 +14,18 @@ import { useHomeData } from "../hooks/useHomeData";
 
 export default function Home() {
   const insets = useSafeAreaInsets();
-  const {
-    pending,
-    upcoming,
-    hero,
-    groups,
-    overdueCount,
-    weekCount,
-    refreshing,
-    refresh,
-  } = useHomeData();
+  const { pending, upcoming, hero, groups, refreshing, refresh } =
+    useHomeData();
 
   return (
-    <>
+    <View className="flex-1 bg-gray-50">
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScrollView
-        className="flex-1 bg-gray-50"
+        className="flex-1"
         contentContainerStyle={{
           paddingTop: insets.top + 12,
-          paddingBottom: 48,
+          paddingBottom: insets.bottom + 128,
         }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={refresh} />
@@ -91,6 +83,7 @@ export default function Home() {
 
         <LibraryCard />
       </ScrollView>
-    </>
+
+    </View>
   );
 }

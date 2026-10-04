@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { getItemsByStatus } from "../db/items";
+import { getItemsByStatus, getAllItems } from "../db/items";
 import { Item } from "../types/item";
 
 const CATEGORIES = ["Bill", "Receipt", "School", "Work", "Promo", "Other"];
@@ -16,7 +16,9 @@ const CATEGORIES = ["Bill", "Receipt", "School", "Work", "Promo", "Other"];
 const normalize = (value: string | null) => (value ?? "").trim().toLowerCase();
 
 const getCategoryOf = (item: Item) => {
-  const match = CATEGORIES.find((c) => c.toLowerCase() === normalize(item.category));
+  const match = CATEGORIES.find(
+    (c) => c.toLowerCase() === normalize(item.category),
+  );
   return match ?? "Other";
 };
 
@@ -26,7 +28,7 @@ export default function Library() {
 
   useFocusEffect(
     useCallback(() => {
-      getItemsByStatus("stored").then(setItems);
+      getAllItems().then(setItems);
     }, []),
   );
 
@@ -94,7 +96,7 @@ export default function Library() {
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
-          contentContainerClassName="p-5 pb-12"
+          contentContainerClassName="p-5 pb-36"
           ListEmptyComponent={
             <View className="p-6 bg-white rounded-2xl border border-dashed border-gray-300 items-center">
               <Text className="text-sm text-gray-400 font-medium">
@@ -139,6 +141,7 @@ export default function Library() {
             </TouchableOpacity>
           )}
         />
+
       </View>
     </>
   );

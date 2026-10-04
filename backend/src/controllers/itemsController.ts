@@ -7,11 +7,27 @@ export async function uploadItem(req: Request, res: Response) {
   }
 
   try {
-    const extracted = await extractDataFromImage(req.file.buffer, req.file.mimetype);
+    const extracted = await extractDataFromImage(
+      req.file.buffer,
+      req.file.mimetype,
+    );
     console.log("Extracted:", extracted);
     res.json({ ok: true, extracted });
   } catch (err) {
-    console.error("Extraction failed:", err);
-    res.status(500).json({ error: "Extraction failed" });
+    const status = (err as { status?: number })?.status;
+    console.error("Extraction failed after retries:", err);
+
+    if (status === 503 || status === 429) {
+      return res.status(503).json({
+        ok: false,
+        error: "Extraction failed",
+        status: "failed: service busy",
+        retryable: true,
+      });
+    }
+
+    res
+      .status(500)
+      .json({ ok: false, error: "Extraction failed", status: "failed" });
   }
 }
