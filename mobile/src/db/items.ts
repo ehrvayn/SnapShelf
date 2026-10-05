@@ -95,6 +95,15 @@ export async function updateItemStatus(
   );
 }
 
+export async function confirmItem(itemId: string): Promise<void> {
+  const db = await getDb();
+  const now = new Date().toISOString();
+  await db.runAsync(
+    `UPDATE items SET status = 'confirmed', deadline_confirmed_at = ?, updated_at = ? WHERE id = ?`,
+    [now, now, itemId],
+  );
+}
+
 export async function updateItem(
   itemId: string,
   itemData: { title: string | null; deadline: string | null },

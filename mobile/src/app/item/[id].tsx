@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import DeleteItemModal from "../../components/modal/DeleteItemModal";
 import {
+  confirmItem,
   deleteItem,
   getItemById,
   getItemFields,
@@ -123,7 +124,9 @@ export default function Review() {
         }
       }
 
-      if (item.status === "pending_review") {
+      if (editedDeadline) {
+        await confirmItem(id);
+      } else if (item.status === "pending_review") {
         await updateItemStatus(id, "stored");
       }
 
