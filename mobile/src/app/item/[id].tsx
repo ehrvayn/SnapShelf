@@ -13,6 +13,8 @@ import {
   View,
 } from "react-native";
 import DeleteItemModal from "../../components/modal/DeleteItemModal";
+import { getCategory } from "../../constants/categories";
+import { getTone } from "../../constants/tones";
 import {
   confirmItem,
   deleteItem,
@@ -22,7 +24,15 @@ import {
   updateItemField,
   updateItemStatus,
 } from "../../db/items";
+import { daysUntil } from "../../hooks/useHomeData";
+import { syncReminders } from "../../services/notifications";
 import { ItemField } from "../../types/item";
+
+// Fields the AI is less sure about get a gentle visual cue, not a number.
+const LOW_CONFIDENCE = 0.7;
+
+const formatKey = (key: string) =>
+  key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 export default function Review() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -69,8 +79,8 @@ export default function Review() {
     return (
       <>
         <Stack.Screen options={{ title: "Loading..." }} />
-        <View className="flex-1 items-center justify-center bg-white">
-          <Text className="text-gray-400 font-medium">Loading...</Text>
+        <View className="flex-1 items-center justify-center bg-cream">
+          <Text className="text-ink-faint font-body-medium">Loading...</Text>
         </View>
       </>
     );
@@ -79,22 +89,15 @@ export default function Review() {
   if (!item) {
     return (
       <>
-        <Stack.Screen options={{ title: "Not Found" }} />
-        <View className="flex-1 items-center justify-center bg-white">
-          <Text className="text-gray-500 font-medium">Item not found.</Text>
+        <Stack.Screen options={{ title: "Not found" }} />
+        <View className="flex-1 items-center justify-center bg-cream">
+          <Text className="text-ink-soft font-body-medium">
+            Item not found.
+          </Text>
         </View>
       </>
     );
   }
-
-  const formatKey = (key: string) => {
-    return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  };
-
-  const formatConfidence = (confidence: number | null) => {
-    if (confidence === null) return "—";
-    return `${Math.round(confidence * 100)}%`;
-  };
 
   const isOverdue = item.deadline_at
     ? new Date(item.deadline_at) < new Date(Date.now())
@@ -102,6 +105,17 @@ export default function Review() {
 
   const needsReview = item.status === "pending_review" && !isOverdue;
   const fieldsEditable = needsReview || isEditing;
+
+  const tone = item.deadline_at ? getTone(daysUntil(item.deadline_at)) : null;
+  const cat = getCategory(item.category);
+
+  // A field is "low" until the person changes its value.
+  const isLow = (f: ItemField) =>
+    f.confidence !== null &&
+    f.confidence < LOW_CONFIDENCE &&
+    (editedValues[f.id] ?? "") === (f.value ?? "");
+
+  const lowCount = fields ? fields.filter(isLow).length : 0;
 
   const handleDateChange = (_event: unknown, date: Date) => {
     setShowAndroidPicker(false);
@@ -134,6 +148,7 @@ export default function Review() {
         queryClient.invalidateQueries({ queryKey: ["item", id] }),
         queryClient.invalidateQueries({ queryKey: ["itemFields", id] }),
       ]);
+      await syncReminders();
       setIsEditing(false);
     } finally {
       setIsSaving(false);
@@ -145,6 +160,7 @@ export default function Review() {
     setIsDeleting(true);
     try {
       await deleteItem(id);
+      await syncReminders();
       setShowDelete(false);
       router.back();
       queryClient.removeQueries({ queryKey: ["item", id] });
@@ -160,20 +176,20 @@ export default function Review() {
       <Stack.Screen
         options={{
           title: needsReview ? "Review" : "Details",
+          headerStyle: { backgroundColor: "#FFF8EC" },
+          headerShadowVisible: false,
+          headerTintColor: "#2B2438",
+          headerTitleStyle: { fontFamily: "Nunito_800ExtraBold" },
           headerRight: () => (
             <View className="flex-row items-center gap-5">
               {!needsReview && (
                 <TouchableOpacity
                   disabled={isSaving}
-                  onPress={() => {
-                    if (isEditing) {
-                      handleSave();
-                    } else {
-                      setIsEditing(true);
-                    }
-                  }}
+                  onPress={() =>
+                    isEditing ? handleSave() : setIsEditing(true)
+                  }
                 >
-                  <Text className="text-indigo-600 font-semibold text-base">
+                  <Text className="text-brand-ink font-body-bold text-base">
                     {isSaving ? "Saving..." : isEditing ? "Save" : "Edit"}
                   </Text>
                 </TouchableOpacity>
@@ -184,7 +200,7 @@ export default function Review() {
                 onPress={() => setShowDelete(true)}
                 hitSlop={10}
               >
-                <Ionicons name="trash-outline" size={22} color="#dc2626" />
+                <Ionicons name="trash-outline" size={22} color="#C73E37" />
               </TouchableOpacity>
             </View>
           ),
@@ -192,39 +208,42 @@ export default function Review() {
       />
 
       <ScrollView
-        className="flex-1 bg-white"
-        contentContainerClassName="p-5 pb-12 gap-6"
+        className="flex-1 bg-cream"
+        contentContainerClassName="p-5 pb-12 gap-5"
       >
+        {/* Photo */}
         {item.local_image_uri && (
-          <View className="bg-gray-50 border rounded-md border-gray-200 overflow-hidden items-center justify-center p-2">
+          <View className="bg-paper border border-line rounded-3xl overflow-hidden p-2">
             <Image
-              className="w-full h-[450px]"
+              className="w-full h-[400px] rounded-2xl"
               source={{ uri: item.local_image_uri }}
               resizeMode="contain"
             />
           </View>
         )}
 
+        {/* Title and deadline */}
         {fieldsEditable ? (
           <View className="gap-4">
             <View className="gap-2">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+              <Text className="text-sm font-body-bold text-ink-soft">
                 Title
               </Text>
               <TextInput
-                className="text-xl font-bold text-gray-900 bg-white border border-gray-200 rounded-md px-3 py-2"
+                className="text-xl font-heading text-ink bg-paper border border-line rounded-2xl px-4 py-3"
                 value={editedTitle}
                 onChangeText={setEditedTitle}
                 placeholder="Untitled"
+                placeholderTextColor="#A39DB0"
               />
             </View>
 
             <View className="gap-2">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
+              <Text className="text-sm font-body-bold text-ink-soft">
                 Deadline
               </Text>
               {editedDeadline ? (
-                <View className="flex-row items-center bg-gray-50 border border-gray-200 rounded-md px-3 py-2">
+                <View className="flex-row items-center bg-paper border border-line rounded-2xl px-4 py-3">
                   {Platform.OS === "ios" ? (
                     <DateTimePicker
                       value={editedDeadline}
@@ -237,7 +256,7 @@ export default function Review() {
                       <TouchableOpacity
                         onPress={() => setShowAndroidPicker(true)}
                       >
-                        <Text className="text-base text-gray-800 font-medium">
+                        <Text className="text-base font-body-medium text-ink">
                           {editedDeadline.toDateString()}
                         </Text>
                       </TouchableOpacity>
@@ -254,10 +273,10 @@ export default function Review() {
                 </View>
               ) : (
                 <TouchableOpacity
-                  className="bg-gray-50 border border-dashed border-gray-300 rounded-md px-3 py-3 items-center"
+                  className="bg-paper border border-dashed border-line rounded-2xl px-4 py-4 items-center"
                   onPress={() => setEditedDeadline(new Date())}
                 >
-                  <Text className="text-sm text-indigo-600 font-medium">
+                  <Text className="text-sm font-body-bold text-brand-ink">
                     + Add deadline
                   </Text>
                 </TouchableOpacity>
@@ -265,74 +284,123 @@ export default function Review() {
             </View>
           </View>
         ) : (
-          <View className="gap-2">
-            {item.deadline_at && (
-              <View className="flex-row items-center justify-between">
+          <View className="gap-3">
+            <View className="flex-row items-center gap-2 flex-wrap">
+              <View
+                className="flex-row items-center gap-1 rounded-full px-3 py-1"
+                style={{ backgroundColor: cat.bg }}
+              >
+                <Ionicons name={cat.icon} size={13} color={cat.fg} />
                 <Text
-                  className={`text-xs font-semibold uppercase tracking-wider ${
-                    isOverdue ? "text-red-600" : "text-indigo-600"
-                  }`}
+                  className="text-xs font-body-bold"
+                  style={{ color: cat.fg }}
                 >
-                  {isOverdue ? "Overdue" : "Deadline"}
-                </Text>
-                <Text className="text-xs text-gray-400 font-medium">
-                  {new Date(item.deadline_at).toDateString()}
+                  {cat.label}
                 </Text>
               </View>
-            )}
-            <Text className="text-2xl font-bold text-gray-900">
+              {tone && (
+                <View className={`${tone.box} rounded-full px-3 py-1`}>
+                  <Text className={`text-xs font-body-bold ${tone.text}`}>
+                    {tone.label}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text className="text-3xl font-display text-ink">
               {item.title ?? "Untitled"}
             </Text>
+            {item.deadline_at && (
+              <Text className="text-sm font-body-medium text-ink-soft">
+                {new Date(item.deadline_at).toDateString()}
+              </Text>
+            )}
           </View>
         )}
 
-        {fields && fields.length > 0 && (
-          <View className="bg-gray-50 rounded-md p-4 border border-gray-200 gap-4">
-            <Text className="text-xs font-bold uppercase tracking-wider text-gray-400">
-              Details
-            </Text>
-            <View className="gap-3">
-              {fields.map((field) => (
-                <View key={field.id} className="flex-col gap-1">
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-xs font-medium text-gray-400">
-                      {formatKey(field.key)}
-                    </Text>
-                    <Text className="text-xs font-medium text-gray-400">
-                      {formatConfidence(field.confidence)} sure
-                    </Text>
-                  </View>
+        {/* Low-confidence summary */}
+        {lowCount > 0 && (
+          <View className="flex-row items-center gap-3 bg-soon-soft rounded-2xl p-4">
+            <Ionicons name="help-circle" size={24} color="#9A6400" />
+            <View className="flex-1">
+              <Text className="text-sm font-body-bold text-soon-ink">
+                {lowCount} {lowCount === 1 ? "detail needs" : "details need"} a
+                quick check
+              </Text>
+              <Text className="text-xs font-body text-soon-ink">
+                Tap a highlighted field to fix it.
+              </Text>
+            </View>
+          </View>
+        )}
 
-                  {fieldsEditable ? (
-                    <TextInput
-                      className="text-base text-gray-800 font-medium bg-white border border-gray-200 rounded-md px-3 py-2"
-                      value={editedValues[field.id] ?? ""}
-                      onChangeText={(text) =>
-                        setEditedValues((prev) => ({
-                          ...prev,
-                          [field.id]: text,
-                        }))
-                      }
-                    />
-                  ) : (
-                    <Text className="text-base text-gray-800 font-medium px-3 py-2">
-                      {field.value}
-                    </Text>
-                  )}
-                </View>
-              ))}
+        {/* Extracted fields */}
+        {fields && fields.length > 0 && (
+          <View className="bg-paper rounded-3xl p-5 border border-line gap-4">
+            <Text className="text-lg font-heading text-ink">Details</Text>
+            <View className="gap-4">
+              {fields.map((field) => {
+                const low = isLow(field);
+                return (
+                  <View key={field.id} className="gap-1.5">
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-xs font-body-bold text-ink-soft">
+                        {formatKey(field.key)}
+                      </Text>
+                      {low && (
+                        <View className="flex-row items-center gap-1">
+                          <Ionicons
+                            name="help-circle-outline"
+                            size={14}
+                            color="#9A6400"
+                          />
+                          <Text className="text-xs font-body-bold text-soon-ink">
+                            Check this
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {fieldsEditable ? (
+                      <TextInput
+                        className={`text-base font-body-medium text-ink rounded-2xl px-4 py-3 border ${
+                          low
+                            ? "bg-soon-soft border-dashed border-soon"
+                            : "bg-cream border-line"
+                        }`}
+                        value={editedValues[field.id] ?? ""}
+                        onChangeText={(text) =>
+                          setEditedValues((prev) => ({
+                            ...prev,
+                            [field.id]: text,
+                          }))
+                        }
+                      />
+                    ) : (
+                      <Text
+                        className={`text-base font-body-medium text-ink rounded-2xl px-4 py-3 ${
+                          low
+                            ? "bg-soon-soft border border-dashed border-soon"
+                            : ""
+                        }`}
+                      >
+                        {field.value}
+                      </Text>
+                    )}
+                  </View>
+                );
+              })}
             </View>
           </View>
         )}
 
         {needsReview && (
           <TouchableOpacity
-            className="w-full bg-indigo-600 py-4 rounded-xl items-center justify-center mt-2 shadow-sm"
-            activeOpacity={0.8}
+            className="w-full bg-brand py-4 rounded-full items-center justify-center mt-1"
+            activeOpacity={0.85}
             disabled={isSaving}
             onPress={handleSave}
           >
-            <Text className="text-white font-semibold text-base">
+            <Text className="text-white font-heading text-base">
               {isSaving ? "Saving..." : "Confirm"}
             </Text>
           </TouchableOpacity>

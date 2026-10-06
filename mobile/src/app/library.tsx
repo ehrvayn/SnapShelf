@@ -13,19 +13,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DeleteItemModal from "../components/modal/DeleteItemModal";
+import { CATEGORIES, getCategory } from "../constants/categories";
+import { getTone } from "../constants/tones";
 import { deleteItems, getAllItems } from "../db/items";
+import { daysUntil } from "../hooks/useHomeData";
+import { syncReminders } from "../services/notifications";
 import { Item } from "../types/item";
-
-const CATEGORIES = ["Bill", "Receipt", "School", "Work", "Promo", "Other"];
-
-const normalize = (value: string | null) => (value ?? "").trim().toLowerCase();
-
-const getCategoryOf = (item: Item) => {
-  const match = CATEGORIES.find(
-    (c) => c.toLowerCase() === normalize(item.category),
-  );
-  return match ?? "Other";
-};
 
 export default function Library() {
   const insets = useSafeAreaInsets();
@@ -47,7 +40,6 @@ export default function Library() {
   useFocusEffect(
     useCallback(() => {
       load();
-
       const sub = BackHandler.addEventListener("hardwareBackPress", () => {
         if (selecting) {
           exitSelection();
@@ -61,9 +53,9 @@ export default function Library() {
 
   const counts = useMemo(() => {
     const result: Record<string, number> = { All: items.length };
-    CATEGORIES.forEach((c) => (result[c] = 0));
+    CATEGORIES.forEach((c) => (result[c.label] = 0));
     items.forEach((i) => {
-      result[getCategoryOf(i)] += 1;
+      result[getCategory(i.category).label] += 1;
     });
     return result;
   }, [items]);
@@ -72,7 +64,7 @@ export default function Library() {
     () =>
       selected === "All"
         ? items
-        : items.filter((i) => getCategoryOf(i) === selected),
+        : items.filter((i) => getCategory(i.category).label === selected),
     [items, selected],
   );
 
@@ -88,16 +80,12 @@ export default function Library() {
     });
   };
 
-  const toggleAll = () => {
+  const toggleAll = () =>
     setPicked(allPicked ? new Set() : new Set(filtered.map((i) => i.id)));
-  };
 
   const handlePress = (item: Item) => {
-    if (selecting) {
-      togglePick(item.id);
-    } else {
-      router.push({ pathname: "/item/[id]", params: { id: item.id } });
-    }
+    if (selecting) togglePick(item.id);
+    else router.push({ pathname: "/item/[id]", params: { id: item.id } });
   };
 
   const handleLongPress = (item: Item) => {
@@ -113,6 +101,7 @@ export default function Library() {
     try {
       const ids = Array.from(picked);
       await deleteItems(ids);
+      await syncReminders();
       ids.forEach((id) => {
         queryClient.removeQueries({ queryKey: ["item", id] });
         queryClient.removeQueries({ queryKey: ["itemFields", id] });
@@ -129,8 +118,8 @@ export default function Library() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View className="flex-1 bg-gray-50">
-        <View className="px-5" style={{ paddingTop: insets.top + 12 }}>
+      <View className="flex-1 bg-cream">
+        <View className="px-5" style={{ paddingTop: insets.top + 16 }}>
           <View className="h-14 flex-row items-center justify-between">
             {selecting ? (
               <>
@@ -138,11 +127,11 @@ export default function Library() {
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={exitSelection}
-                    className="w-10 h-10 rounded-full bg-white border border-gray-200 items-center justify-center"
+                    className="w-10 h-10 rounded-full bg-paper border border-line items-center justify-center"
                   >
-                    <Ionicons name="close" size={20} color="#374151" />
+                    <Ionicons name="close" size={20} color="#2B2438" />
                   </TouchableOpacity>
-                  <Text className="text-xl font-bold text-gray-900">
+                  <Text className="text-xl font-heading text-ink">
                     {picked.size} selected
                   </Text>
                 </View>
@@ -151,9 +140,9 @@ export default function Library() {
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={toggleAll}
-                    className="h-10 px-4 rounded-full bg-white border border-gray-200 items-center justify-center"
+                    className="h-10 px-4 rounded-full bg-paper border border-line items-center justify-center"
                   >
-                    <Text className="text-sm font-semibold text-indigo-600">
+                    <Text className="text-sm font-body-bold text-brand-ink">
                       {allPicked ? "Clear" : "Select all"}
                     </Text>
                   </TouchableOpacity>
@@ -162,7 +151,7 @@ export default function Library() {
                     disabled={picked.size === 0}
                     onPress={() => setShowDelete(true)}
                     className={`w-10 h-10 rounded-full items-center justify-center ${
-                      picked.size === 0 ? "bg-red-200" : "bg-red-600"
+                      picked.size === 0 ? "bg-urgent-soft" : "bg-urgent"
                     }`}
                   >
                     <Ionicons name="trash-outline" size={20} color="#fff" />
@@ -172,10 +161,10 @@ export default function Library() {
             ) : (
               <>
                 <View>
-                  <Text className="text-3xl font-extrabold text-gray-900">
+                  <Text className="text-3xl font-display text-ink">
                     Library
                   </Text>
-                  <Text className="text-xs font-medium text-gray-400">
+                  <Text className="text-xs font-body-medium text-ink-faint">
                     {items.length} {items.length === 1 ? "item" : "items"}{" "}
                     stored
                   </Text>
@@ -185,14 +174,14 @@ export default function Library() {
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => setSelecting(true)}
-                    className="h-10 px-4 flex-row items-center gap-1.5 rounded-full bg-white border border-gray-200"
+                    className="h-10 px-4 flex-row items-center gap-1.5 rounded-full bg-paper border border-line"
                   >
                     <Ionicons
                       name="checkmark-circle-outline"
                       size={16}
-                      color="#4f46e5"
+                      color="#C2531A"
                     />
-                    <Text className="text-sm font-semibold text-indigo-600">
+                    <Text className="text-sm font-body-bold text-brand-ink">
                       Select
                     </Text>
                   </TouchableOpacity>
@@ -208,29 +197,27 @@ export default function Library() {
           style={{ flexGrow: 0 }}
           contentContainerClassName="px-5 pt-3 pb-4 gap-2"
         >
-          {["All", ...CATEGORIES].map((cat) => {
+          {["All", ...CATEGORIES.map((c) => c.label)].map((cat) => {
             const active = selected === cat;
             return (
               <TouchableOpacity
                 key={cat}
                 activeOpacity={0.7}
                 onPress={() => setSelected(cat)}
-                className={`flex-row items-center gap-2 px-4 py-2 h-10 rounded-full border ${
-                  active
-                    ? "bg-indigo-600 border-indigo-600"
-                    : "bg-white border-gray-200"
+                className={`flex-row items-center gap-2 px-4 h-10 rounded-full border ${
+                  active ? "bg-brand border-brand" : "bg-paper border-line"
                 }`}
               >
                 <Text
-                  className={`text-sm font-semibold ${
-                    active ? "text-white" : "text-gray-700"
+                  className={`text-sm font-body-bold ${
+                    active ? "text-white" : "text-ink"
                   }`}
                 >
                   {cat}
                 </Text>
                 <Text
-                  className={`text-xs font-bold ${
-                    active ? "text-indigo-200" : "text-gray-400"
+                  className={`text-xs font-body-bold ${
+                    active ? "text-white/80" : "text-ink-faint"
                   }`}
                 >
                   {counts[cat]}
@@ -247,9 +234,9 @@ export default function Library() {
           showsVerticalScrollIndicator={false}
           contentContainerClassName="px-5 pb-40"
           ListEmptyComponent={
-            <View className="p-8 bg-white rounded-3xl border border-dashed border-gray-300 items-center gap-2">
-              <Ionicons name="albums-outline" size={28} color="#9ca3af" />
-              <Text className="text-sm text-gray-400 font-medium text-center">
+            <View className="p-8 bg-paper rounded-3xl border border-dashed border-line items-center gap-2">
+              <Ionicons name="albums-outline" size={28} color="#A39DB0" />
+              <Text className="text-sm font-body-medium text-ink-faint text-center">
                 {items.length === 0
                   ? "No items yet. Snap something!"
                   : `No ${selected.toLowerCase()} items.`}
@@ -258,50 +245,72 @@ export default function Library() {
           }
           renderItem={({ item }) => {
             const isPicked = picked.has(item.id);
+            const cat = getCategory(item.category);
+            const tone = item.deadline_at
+              ? getTone(daysUntil(item.deadline_at))
+              : null;
+
             return (
               <TouchableOpacity
-                activeOpacity={0.7}
+                activeOpacity={0.8}
                 onPress={() => handlePress(item)}
                 onLongPress={() => handleLongPress(item)}
                 delayLongPress={300}
                 className={`flex-row items-center rounded-3xl p-3 mb-3 gap-3 border ${
                   isPicked
-                    ? "bg-indigo-50 border-indigo-400"
-                    : "bg-white border-gray-200"
+                    ? "bg-brand-soft border-brand"
+                    : "bg-paper border-line"
                 }`}
               >
                 {selecting && (
                   <Ionicons
                     name={isPicked ? "checkmark-circle" : "ellipse-outline"}
                     size={24}
-                    color={isPicked ? "#4f46e5" : "#d1d5db"}
+                    color={isPicked ? "#FF8A4C" : "#D9D0C0"}
                   />
                 )}
                 <Image
                   source={{ uri: item.local_image_uri }}
-                  className="w-[72px] h-[72px] rounded-2xl bg-gray-100"
+                  className="w-[72px] h-[72px] rounded-2xl bg-cream"
                   resizeMode="cover"
                 />
                 <View className="flex-1 gap-1.5">
                   <Text
-                    className="text-base font-bold text-gray-900"
+                    className="text-base font-heading text-ink"
                     numberOfLines={2}
                   >
                     {item.title ?? "Untitled"}
                   </Text>
-                  <View className="flex-row items-center gap-2">
-                    <View className="bg-indigo-50 rounded-full px-2.5 py-0.5">
-                      <Text className="text-xs font-semibold text-indigo-600">
-                        {getCategoryOf(item)}
+                  <View className="flex-row items-center gap-2 flex-wrap">
+                    <View
+                      className="flex-row items-center gap-1 rounded-full px-2.5 py-0.5"
+                      style={{ backgroundColor: cat.bg }}
+                    >
+                      <Ionicons name={cat.icon} size={11} color={cat.fg} />
+                      <Text
+                        className="text-xs font-body-bold"
+                        style={{ color: cat.fg }}
+                      >
+                        {cat.label}
                       </Text>
                     </View>
-                    <Text className="text-xs font-medium text-gray-400">
-                      {new Date(item.created_at).toDateString()}
-                    </Text>
+                    {tone ? (
+                      <View
+                        className={`${tone.box} rounded-full px-2.5 py-0.5`}
+                      >
+                        <Text className={`text-xs font-body-bold ${tone.text}`}>
+                          {tone.label}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text className="text-xs font-body-medium text-ink-faint">
+                        {new Date(item.created_at).toDateString()}
+                      </Text>
+                    )}
                   </View>
                 </View>
                 {!selecting && (
-                  <Ionicons name="chevron-forward" size={18} color="#d1d5db" />
+                  <Ionicons name="chevron-forward" size={18} color="#D9D0C0" />
                 )}
               </TouchableOpacity>
             );

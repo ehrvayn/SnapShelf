@@ -11,14 +11,6 @@ const startOfDay = (d: Date) =>
 export const daysUntil = (iso: string) =>
   Math.round((startOfDay(new Date(iso)) - startOfDay(new Date())) / 86400000);
 
-export const getTone = (days: number) => {
-  if (days < 0) return { box: "bg-red-50", text: "text-red-600", label: `${Math.abs(days)}d overdue` };
-  if (days === 0) return { box: "bg-amber-50", text: "text-amber-600", label: "Today" };
-  if (days === 1) return { box: "bg-amber-50", text: "text-amber-600", label: "Tomorrow" };
-  if (days <= 7) return { box: "bg-indigo-50", text: "text-indigo-600", label: `${days} days` };
-  return { box: "bg-gray-100", text: "text-gray-500", label: `${days} days` };
-};
-
 export type DeadlineEntry = { item: Item; days: number };
 
 export function useHomeData() {

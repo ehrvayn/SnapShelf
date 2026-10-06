@@ -1,6 +1,7 @@
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
+import { getRemindableItems } from "../db/items";
 
 const isExpoGo =
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
@@ -8,6 +9,7 @@ const isExpoGo =
 type NotificationsModule = typeof import("expo-notifications");
 
 let cached: NotificationsModule | null = null;
+let syncing: Promise<void> = Promise.resolve();
 
 export function getNotifications(): NotificationsModule | null {
   if (isExpoGo && Platform.OS === "android") return null;
@@ -59,3 +61,68 @@ export async function registerForNotificationsAsync(): Promise<boolean> {
 
   return true;
 }
+
+export function syncReminders(): Promise<void> {
+  syncing = syncing.then(runSync).catch((err) => {
+    console.log("syncReminders failed:", err);
+  });
+  return syncing;
+}
+
+async function runSync() {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
+
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status !== "granted") return;
+
+  await Notifications.cancelAllScheduledNotificationsAsync();
+
+  const items = await getRemindableItems();
+  const now = new Date();
+
+  const REMINDERS = [
+    { suffix: "eve", daysBefore: 1, title: "Due tomorrow" },
+    { suffix: "day", daysBefore: 0, title: "Due today" },
+  ];
+
+  for (const item of items) {
+    for (const r of REMINDERS) {
+      const when = new Date(item.deadline_at!);
+      when.setDate(when.getDate() - r.daysBefore);
+      when.setHours(9, 0, 0, 0);
+      if (when <= now) continue;
+
+      await Notifications.scheduleNotificationAsync({
+        identifier: `${item.id}:${r.suffix}`,
+        content: {
+          title: r.title,
+          body: item.title ?? "You have a deadline coming up",
+          data: { itemId: item.id },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: when,
+          channelId: "default",
+        },
+      });
+    }
+  }
+}
+
+// export async function sendTestNotification(seconds = 5) {
+//   const Notifications = getNotifications();
+//   if (!Notifications) return;
+
+//   await Notifications.scheduleNotificationAsync({
+//     content: {
+//       title: "mochiku reminder",
+//       body: "Your electricity bill is due tomorrow.",
+//     },
+//     trigger: {
+//       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+//       seconds,
+//       channelId: "default",
+//     },
+//   });
+// }

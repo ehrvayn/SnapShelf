@@ -18,17 +18,22 @@ export default function Home() {
     useHomeData();
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-cream">
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingTop: insets.top + 12,
+          paddingTop: insets.top + 16,
           paddingBottom: insets.bottom + 128,
         }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={refresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={refresh}
+            tintColor="#FF8A4C"
+            colors={["#FF8A4C"]}
+          />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -37,7 +42,11 @@ export default function Home() {
         {hero && <NextUpCard entry={hero} />}
 
         <View className="mb-8">
-          <SectionHeader title="To confirm" count={pending.length} />
+          <SectionHeader
+            title="To confirm"
+            subtitle="Check what was read from your photos"
+            count={pending.length}
+          />
           {pending.length === 0 ? (
             <EmptyCard
               icon="checkmark-circle-outline"
@@ -65,10 +74,10 @@ export default function Home() {
             />
           ) : (
             groups.map((g) => (
-              <View key={g.title} className="px-5 mb-3">
+              <View key={g.title} className="px-5 mb-2">
                 <Text
-                  className={`text-xs font-bold uppercase tracking-wider mb-2 ${
-                    g.title === "Overdue" ? "text-red-500" : "text-gray-400"
+                  className={`text-sm font-body-bold mb-2 ${
+                    g.title === "Overdue" ? "text-urgent-ink" : "text-ink-soft"
                   }`}
                 >
                   {g.title}
@@ -83,7 +92,6 @@ export default function Home() {
 
         <LibraryCard />
       </ScrollView>
-
     </View>
   );
 }

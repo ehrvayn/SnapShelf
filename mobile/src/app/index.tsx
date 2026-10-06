@@ -32,9 +32,8 @@ const ZOOM_STEPS = [
 ];
 
 function Corner({ className }: { className: string }) {
-  return <View className={`absolute w-9 h-9 border-white ${className}`} />;
+  return <View className={`absolute w-9 h-9 border-brand ${className}`} />;
 }
-
 export default function CameraScreen() {
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
@@ -65,25 +64,24 @@ export default function CameraScreen() {
 
   if (!permission.granted) {
     return (
-      <View className="flex-1 bg-gray-50 items-center justify-center px-8 gap-6">
-        <Stack.Screen options={{ headerShown: false }} />
-        <View className="w-20 h-20 rounded-3xl bg-indigo-50 items-center justify-center">
-          <Ionicons name="camera-outline" size={36} color="#4f46e5" />
+      <View className="flex-1 bg-cream items-center justify-center px-8 gap-6">
+        <View className="w-20 h-20 rounded-3xl bg-brand-soft items-center justify-center">
+          <Ionicons name="camera-outline" size={36} color="#C2531A" />
         </View>
         <View className="items-center gap-2">
-          <Text className="text-2xl font-extrabold text-gray-900">
+          <Text className="text-2xl font-display text-ink">
             Allow camera access
           </Text>
-          <Text className="text-sm text-gray-500 text-center">
-            SnapShelf needs your camera to scan bills, receipts and notices.
+          <Text className="text-sm font-body text-ink-soft text-center">
+            mochiku needs your camera to scan bills, receipts and notices.
           </Text>
         </View>
         <TouchableOpacity
-          activeOpacity={0.85}
           onPress={requestPermission}
-          className="w-full bg-indigo-600 py-4 rounded-xl items-center shadow-sm"
+          activeOpacity={0.85}
+          className="w-full bg-brand py-4 rounded-full items-center"
         >
-          <Text className="text-white font-semibold text-base">
+          <Text className="text-white font-heading text-base">
             Allow camera
           </Text>
         </TouchableOpacity>
@@ -129,7 +127,7 @@ export default function CameraScreen() {
   };
 
   return (
-    <View className="flex-1 bg-black">
+    <View className="flex-1 bg-night">
       <Stack.Screen options={{ headerShown: false }} />
 
       <GestureDetector gesture={pinch}>
@@ -166,7 +164,7 @@ export default function CameraScreen() {
           </TouchableOpacity>
 
           <Text className="text-white text-base font-bold tracking-wide">
-            SnapShelf
+            mochiku
           </Text>
         </View>
 
@@ -183,11 +181,11 @@ export default function CameraScreen() {
 
           <View className="mt-5 h-9 justify-center">
             {status === "idle" ? (
-              <Text className="text-white/80 text-sm font-medium">
+              <Text className="text-white/80 text-sm font-body-medium">
                 Fit the document inside the frame
               </Text>
             ) : (
-              <View className="flex-row items-center gap-2 bg-black/60 rounded-full px-4 py-2">
+              <View className="flex-row items-center gap-2 bg-night/80 rounded-full px-4 py-2">
                 {busy && <ActivityIndicator size="small" color="#fff" />}
                 {status === "done" && (
                   <Ionicons name="checkmark-circle" size={18} color="#4ade80" />
@@ -195,7 +193,7 @@ export default function CameraScreen() {
                 {status === "error" && (
                   <Ionicons name="alert-circle" size={18} color="#fbbf24" />
                 )}
-                <Text className="text-white text-sm font-semibold">
+                <Text className="text-white text-sm font-body-bold">
                   {STATUS_COPY[status]}
                 </Text>
               </View>
@@ -243,11 +241,9 @@ export default function CameraScreen() {
             className="w-20 h-20 rounded-full border-4 border-white items-center justify-center"
           >
             <View
-              className={`w-[60px] h-[60px] rounded-full items-center justify-center ${
-                busy ? "bg-white/60" : "bg-white"
-              }`}
+              className={`w-[60px] h-[60px] rounded-full items-center justify-center ${busy ? "bg-white/60" : "bg-white"}`}
             >
-              {busy && <ActivityIndicator color="#4f46e5" />}
+              {busy && <ActivityIndicator color="#FF8A4C" />}
             </View>
           </TouchableOpacity>
 

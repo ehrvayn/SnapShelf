@@ -5,7 +5,7 @@ let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 export function getDb() {
   if (!dbPromise) {
     dbPromise = (async () => {
-      const db = await SQLite.openDatabaseAsync("snapshelf.db");
+      const db = await SQLite.openDatabaseAsync("mochiku.db");
       await migrate(db);
       return db;
     })().catch((err) => {

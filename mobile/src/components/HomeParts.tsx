@@ -1,80 +1,98 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Image, Text, TouchableOpacity, View } from "react-native";
-import {
-  DeadlineEntry,
-  MONTHS,
-  daysUntil,
-  getTone,
-} from "../hooks/useHomeData";
+import { CATEGORIES, IconName, getCategory } from "../constants/categories";
+import { getTone, softShadow } from "../constants/tones";
+import { DeadlineEntry, MONTHS, daysUntil } from "../hooks/useHomeData";
 import { Item } from "../types/item";
-
-type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
 const openItem = (id: string) =>
   router.push({ pathname: "/item/[id]", params: { id } });
 
-const CATEGORIES: { label: string; icon: IconName }[] = [
-  { label: "Bill", icon: "document-text-outline" },
-  { label: "Receipt", icon: "receipt-outline" },
-  { label: "School", icon: "school-outline" },
-  { label: "Work", icon: "briefcase-outline" },
-  { label: "Promo", icon: "pricetag-outline" },
-  { label: "Other", icon: "ellipsis-horizontal-circle-outline" },
-];
+function CategoryChip({ value }: { value: string | null }) {
+  const c = getCategory(value);
+  return (
+    <View
+      className="flex-row items-center gap-1 rounded-full px-2.5 py-1 self-start"
+      style={{ backgroundColor: c.bg }}
+    >
+      <Ionicons name={c.icon} size={12} color={c.fg} />
+      <Text className="text-xs font-body-bold" style={{ color: c.fg }}>
+        {c.label}
+      </Text>
+    </View>
+  );
+}
 
 export function HomeHeader({ pendingCount }: { pendingCount: number }) {
-  const h = new Date().getHours();
+  const now = new Date();
+  const h = now.getHours();
   const greeting =
     h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  const today = now.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 
   return (
-    <View className="flex-row items-center justify-between px-5 mb-5">
-      <View className="flex-1 pr-3">
-        <Text className="text-3xl font-extrabold text-gray-900">
-          {greeting}
-        </Text>
-        <Text className="text-sm text-gray-500 mt-0.5">
-          {pendingCount > 0
-            ? `${pendingCount} ${pendingCount === 1 ? "item needs" : "items need"} your review`
-            : "You're all caught up"}
-        </Text>
-      </View>
+    <View className="px-5 mb-6">
+      <Text className="text-sm font-body-medium text-ink-faint">{today}</Text>
+      <Text className="text-3xl font-display text-ink mt-0.5">{greeting}</Text>
+      <Text className="text-base font-body text-ink-soft mt-1">
+        {pendingCount > 0
+          ? `${pendingCount} ${pendingCount === 1 ? "item needs" : "items need"} your review`
+          : "You're all caught up"}
+      </Text>
     </View>
   );
 }
 
 export function NextUpCard({ entry }: { entry: DeadlineEntry }) {
   const { item, days } = entry;
-  const label = days === 0 ? "Today" : days === 1 ? "Tomorrow" : `${days}`;
+  const tone = getTone(days);
+  const big =
+    days < 0
+      ? "Overdue"
+      : days === 0
+        ? "Today"
+        : days === 1
+          ? "Tomorrow"
+          : `${days}`;
 
   return (
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={() => openItem(item.id)}
-      className="mx-5 mb-8 bg-indigo-600 rounded-3xl p-5 shadow-md"
+      className={`mx-5 mb-8 rounded-3xl p-5 ${tone.hero}`}
+      style={softShadow}
     >
-      <View className="flex-row items-center gap-1.5">
-        <Ionicons name="time-outline" size={14} color="#c7d2fe" />
-        <Text className="text-xs font-bold uppercase tracking-widest text-indigo-200">
+      <View className="flex-row items-center justify-between">
+        <Text className={`text-sm font-body-bold ${tone.heroSub}`}>
           Next up
         </Text>
+        <CategoryChip value={item.category} />
       </View>
-      <Text className="text-xl font-bold text-white mt-1" numberOfLines={2}>
+      <Text
+        className={`text-2xl font-display mt-2 ${tone.heroText}`}
+        numberOfLines={2}
+      >
         {item.title ?? "Untitled"}
       </Text>
-      <View className="flex-row items-end justify-between mt-4">
+      <View className="flex-row items-end justify-between mt-5">
         <View className="flex-row items-end gap-1.5">
-          <Text className="text-5xl font-extrabold text-white leading-[52px]">
-            {label}
+          <Text
+            className={`text-5xl font-display leading-[54px] ${tone.heroText}`}
+          >
+            {big}
           </Text>
           {days > 1 && (
-            <Text className="text-base font-semibold text-indigo-200 pb-1.5">
+            <Text className={`text-base font-body-bold pb-2 ${tone.heroSub}`}>
               days left
             </Text>
           )}
         </View>
-        <Text className="text-sm font-medium text-indigo-200 pb-1.5">
+        <Text className={`text-sm font-body-medium pb-2 ${tone.heroSub}`}>
           {new Date(item.deadline_at!).toDateString()}
         </Text>
       </View>
@@ -94,14 +112,16 @@ export function SectionHeader({
   return (
     <View className="flex-row items-end justify-between px-5 mb-3">
       <View>
-        <Text className="text-lg font-bold text-gray-900">{title}</Text>
+        <Text className="text-xl font-heading text-ink">{title}</Text>
         {subtitle && (
-          <Text className="text-xs font-medium text-gray-400">{subtitle}</Text>
+          <Text className="text-xs font-body-medium text-ink-faint">
+            {subtitle}
+          </Text>
         )}
       </View>
       {!!count && (
-        <View className="bg-indigo-100 rounded-full px-2.5 py-1">
-          <Text className="text-xs font-bold text-indigo-600">{count}</Text>
+        <View className="bg-brand-soft rounded-full px-3 py-1">
+          <Text className="text-xs font-body-bold text-brand-ink">{count}</Text>
         </View>
       )}
     </View>
@@ -110,9 +130,9 @@ export function SectionHeader({
 
 export function EmptyCard({ icon, text }: { icon: IconName; text: string }) {
   return (
-    <View className="mx-5 p-6 bg-white rounded-2xl border border-dashed border-gray-300 items-center gap-2">
-      <Ionicons name={icon} size={26} color="#9ca3af" />
-      <Text className="text-sm text-gray-400 font-medium text-center">
+    <View className="mx-5 p-6 bg-paper rounded-3xl border border-dashed border-line items-center gap-2">
+      <Ionicons name={icon} size={26} color="#A39DB0" />
+      <Text className="text-sm font-body-medium text-ink-faint text-center">
         {text}
       </Text>
     </View>
@@ -122,26 +142,32 @@ export function EmptyCard({ icon, text }: { icon: IconName; text: string }) {
 export function ReviewCard({ item }: { item: Item }) {
   return (
     <TouchableOpacity
-      activeOpacity={0.85}
+      activeOpacity={0.9}
       onPress={() => openItem(item.id)}
-      className="w-60 bg-white border border-gray-200 rounded-3xl overflow-hidden mr-3 shadow-sm"
+      className="w-60 bg-paper border border-line rounded-3xl overflow-hidden mr-3"
+      style={softShadow}
     >
-      <Image
-        source={{ uri: item.local_image_uri }}
-        className="w-full h-28 bg-gray-100"
-        resizeMode="cover"
-      />
-      <View className="p-3.5 gap-1">
-        <Text className="text-base font-bold text-gray-900" numberOfLines={1}>
+      <View>
+        <Image
+          source={{ uri: item.local_image_uri }}
+          className="w-full h-28 bg-cream"
+          resizeMode="cover"
+        />
+        <View className="absolute top-2 left-2">
+          <CategoryChip value={item.category} />
+        </View>
+      </View>
+      <View className="p-4 gap-1">
+        <Text className="text-base font-heading text-ink" numberOfLines={1}>
           {item.title ?? "Untitled"}
         </Text>
-        <Text className="text-xs font-medium text-gray-400">
+        <Text className="text-xs font-body-medium text-ink-faint">
           {item.deadline_at
             ? `Due ${new Date(item.deadline_at).toDateString()}`
             : "No deadline detected"}
         </Text>
-        <View className="mt-2 bg-indigo-600 rounded-xl py-2 flex-row items-center justify-center gap-1.5">
-          <Text className="text-white text-sm font-semibold">Review</Text>
+        <View className="mt-3 bg-brand rounded-full py-2.5 flex-row items-center justify-center gap-1.5">
+          <Text className="text-white text-sm font-body-bold">Review</Text>
           <Ionicons name="arrow-forward" size={14} color="#fff" />
         </View>
       </View>
@@ -155,32 +181,32 @@ export function DeadlineRow({ item }: { item: Item }) {
 
   return (
     <TouchableOpacity
-      activeOpacity={0.7}
+      activeOpacity={0.8}
       onPress={() => openItem(item.id)}
-      className="flex-row items-center bg-white border border-gray-200 rounded-2xl p-3 mb-2.5 gap-3"
+      className="flex-row bg-paper border border-line rounded-3xl mb-3 overflow-hidden"
     >
-      <View
-        className={`w-14 h-14 rounded-xl items-center justify-center ${tone.box}`}
-      >
-        <Text className={`text-[10px] font-bold tracking-wider ${tone.text}`}>
-          {MONTHS[date.getMonth()]}
-        </Text>
-        <Text className={`text-xl font-extrabold ${tone.text}`}>
-          {date.getDate()}
-        </Text>
-      </View>
-      <View className="flex-1">
-        <Text
-          className="text-base font-semibold text-gray-900"
-          numberOfLines={1}
+      <View className={`w-1.5 ${tone.bar}`} />
+      <View className="flex-1 flex-row items-center p-3 gap-3">
+        <View
+          className={`w-14 h-14 rounded-2xl items-center justify-center ${tone.box}`}
         >
-          {item.title ?? "Untitled"}
-        </Text>
-        <Text className={`text-xs font-semibold mt-0.5 ${tone.text}`}>
-          {tone.label}
-        </Text>
+          <Text className={`text-xs font-body-bold ${tone.text}`}>
+            {MONTHS[date.getMonth()]}
+          </Text>
+          <Text className={`text-xl font-display ${tone.text}`}>
+            {date.getDate()}
+          </Text>
+        </View>
+        <View className="flex-1 gap-1">
+          <Text className="text-base font-heading text-ink" numberOfLines={1}>
+            {item.title ?? "Untitled"}
+          </Text>
+          <Text className={`text-xs font-body-bold ${tone.text}`}>
+            {tone.label}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color="#D9D0C0" />
       </View>
-      <Ionicons name="chevron-forward" size={18} color="#d1d5db" />
     </TouchableOpacity>
   );
 }
@@ -188,30 +214,32 @@ export function DeadlineRow({ item }: { item: Item }) {
 export function LibraryCard() {
   return (
     <TouchableOpacity
-      activeOpacity={0.85}
+      activeOpacity={0.9}
       onPress={() => router.push("/library")}
-      className="mx-5 bg-white border border-gray-200 rounded-3xl p-5 gap-4 shadow-sm"
+      className="mx-5 bg-paper border border-line rounded-3xl p-5 gap-4"
+      style={softShadow}
     >
       <View className="flex-row items-center justify-between">
         <View>
-          <Text className="text-lg font-bold text-gray-900">Your Library</Text>
-          <Text className="text-xs font-medium text-gray-400">
+          <Text className="text-xl font-heading text-ink">Your library</Text>
+          <Text className="text-xs font-body-medium text-ink-faint">
             Everything you've stored
           </Text>
         </View>
         <View className="flex-row items-center">
-          <Text className="text-indigo-600 font-semibold text-sm">Browse</Text>
-          <Ionicons name="chevron-forward" size={16} color="#4f46e5" />
+          <Text className="text-brand-ink font-body-bold text-sm">Browse</Text>
+          <Ionicons name="chevron-forward" size={16} color="#C2531A" />
         </View>
       </View>
       <View className="flex-row flex-wrap gap-2">
         {CATEGORIES.map((c) => (
           <View
             key={c.label}
-            className="flex-row items-center gap-1.5 bg-gray-100 rounded-full px-3 py-1.5"
+            className="flex-row items-center gap-1.5 rounded-full px-3 py-1.5"
+            style={{ backgroundColor: c.bg }}
           >
-            <Ionicons name={c.icon} size={13} color="#4b5563" />
-            <Text className="text-xs font-semibold text-gray-600">
+            <Ionicons name={c.icon} size={13} color={c.fg} />
+            <Text className="text-xs font-body-bold" style={{ color: c.fg }}>
               {c.label}
             </Text>
           </View>

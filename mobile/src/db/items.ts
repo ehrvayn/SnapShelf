@@ -137,3 +137,12 @@ export async function deleteItems(itemIds: string[]): Promise<void> {
   const placeholders = itemIds.map(() => "?").join(",");
   await db.runAsync(`DELETE FROM items WHERE id IN (${placeholders})`, itemIds);
 }
+
+export async function getRemindableItems(): Promise<Item[]> {
+  const db = await getDb();
+  return db.getAllAsync<Item>(
+    `SELECT * FROM items
+     WHERE status IN ('stored', 'confirmed') AND deadline_at IS NOT NULL
+     ORDER BY deadline_at ASC`,
+  );
+}
