@@ -59,17 +59,35 @@ export async function saveExtractedData(
 ): Promise<void> {
   const db = await getDb();
   const now = new Date().toISOString();
-  const status = extracted.deadline ? "pending_review" : "stored";
+
+  const REVIEW_BELOW = 0.7;
+  const deadline = extracted.deadline.value;
+  const needsReview =
+    deadline !== null && extracted.deadline.confidence < REVIEW_BELOW;
+
+  const status = !deadline
+    ? "stored"
+    : needsReview
+      ? "pending_review"
+      : "confirmed";
+  const confirmedAt = status === "confirmed" ? now : null;
 
   await db.runAsync(
     `UPDATE items
-     SET category = ?, title = ?, deadline_at = ?, status = ?, updated_at = ?
+     SET category = ?, category_confidence = ?,
+         title = ?, title_confidence = ?,
+         deadline_at = ?, deadline_confidence = ?,
+         status = ?, deadline_confirmed_at = ?, updated_at = ?
      WHERE id = ?`,
     [
-      extracted.category,
-      extracted.title,
-      extracted.deadline,
+      extracted.category.value,
+      extracted.category.confidence,
+      extracted.title.value,
+      extracted.title.confidence,
+      deadline,
+      extracted.deadline.confidence,
       status,
+      confirmedAt,
       now,
       itemId,
     ],

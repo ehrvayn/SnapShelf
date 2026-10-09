@@ -44,4 +44,17 @@ async function migrate(db: SQLite.SQLiteDatabase) {
       FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
     );
   `);
+
+  const cols = await db.getAllAsync<{ name: string }>(
+    "PRAGMA table_info(items)",
+  );
+  for (const col of [
+    "title_confidence",
+    "category_confidence",
+    "deadline_confidence",
+  ]) {
+    if (!cols.some((c) => c.name === col)) {
+      await db.execAsync(`ALTER TABLE items ADD COLUMN ${col} REAL`);
+    }
+  }
 }

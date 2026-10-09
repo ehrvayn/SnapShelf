@@ -20,7 +20,7 @@ const STATUS_COPY: Record<Exclude<Status, "idle">, string> = {
   processing: "Reading your photo...",
   retrying: "Service busy, retrying...",
   done: "Saved to your shelf",
-  error: "Couldn't read it. Photo not saved",
+  error: "Saved to drafts. Will process when back online",
 };
 
 const RETRY_HINT_DELAY_MS = 4000;
@@ -96,21 +96,22 @@ export default function CameraScreen() {
     const photo = await cameraRef.current?.takePictureAsync({ quality: 0.7 });
     if (!photo) return;
 
+    const permanentUri = savePhotoPermanently(photo.uri);
+    const itemId = await insertItem(permanentUri);
     setStatus("processing");
+
     const retryHintTimer = setTimeout(() => {
       setStatus((s) => (s === "processing" ? "retrying" : s));
     }, RETRY_HINT_DELAY_MS);
 
     try {
-      const result = await uploadPhoto(photo.uri);
+      const result = await uploadPhoto(permanentUri);
 
       if (!result.ok) {
         setStatus("error");
         return;
       }
 
-      const permanentUri = savePhotoPermanently(photo.uri);
-      const itemId = await insertItem(permanentUri);
       await saveExtractedData(itemId, result.extracted);
       setStatus("done");
     } catch {

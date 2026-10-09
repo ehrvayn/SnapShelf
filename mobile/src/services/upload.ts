@@ -1,6 +1,7 @@
-const API_URL = "http://192.168.1.2:3000";
-
 import { File } from "expo-file-system";
+import { getItemById, saveExtractedData, getItemsByStatus } from "../db/items";
+
+const API_URL = "http://192.168.1.2:3000";
 
 export async function uploadPhoto(uri: string): Promise<any> {
   const file = new File(uri);
@@ -15,4 +16,28 @@ export async function uploadPhoto(uri: string): Promise<any> {
 
   if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
   return response.json();
+}
+
+export async function processItem(itemId: string): Promise<boolean> {
+  const item = await getItemById(itemId);
+  if (!item) return false;
+
+  try {
+    const result = await uploadPhoto(item.local_image_uri);
+    if (!result.ok) return false;
+    await saveExtractedData(itemId, result.extracted);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function processPendingUploads(): Promise<number> {
+  const stuck = await getItemsByStatus("uploaded");
+  let succeeded = 0;
+  for (const item of stuck) {
+    const ok = await processItem(item.id);
+    if (ok) succeeded++;
+  }
+  return succeeded;
 }

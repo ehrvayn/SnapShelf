@@ -20,6 +20,9 @@ export interface Item {
   sync_status: SyncStatus;
   created_at: string;
   updated_at: string;
+  title_confidence: number | null;
+  category_confidence: number | null;
+  deadline_confidence: number | null;
 }
 
 export interface ItemField {
@@ -31,9 +34,14 @@ export interface ItemField {
   user_edited: number;
 }
 
+export interface Scored<T> {
+  value: T;
+  confidence: number;
+}
+
 export interface ExtractedData {
-  category: string;
-  title: string;
-  deadline: string | null;
-  fields: Record<string, { value: string; confidence: number }>;
+  category: Scored<string>;
+  title: Scored<string>;
+  deadline: Scored<string | null>;
+  fields: Record<string, Scored<string>>;
 }
