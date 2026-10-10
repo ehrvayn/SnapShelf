@@ -24,17 +24,19 @@ export default function EditableHeader({
 }) {
   const [showAndroidPicker, setShowAndroidPicker] = useState(false);
 
-  const handleChange = (_event: unknown, date: Date) => {
+  const handleChange = (_event: unknown, date?: Date) => {
     setShowAndroidPicker(false);
-    onDeadlineChange(date);
+    if (date) onDeadlineChange(date);
   };
 
   return (
     <View className="gap-4">
-      <View className="gap-2">
-        <Text className="text-sm font-body-bold text-ink-soft">Title</Text>
+      <View className="gap-1.5">
+        <Text className="text-xs font-body-bold text-ink-soft uppercase tracking-wider">
+          Title
+        </Text>
         <TextInput
-          className="text-xl font-heading text-ink bg-paper border border-line rounded-2xl px-4 py-3"
+          className="text-lg font-heading text-ink bg-cream/60 border border-line rounded-2xl px-4 py-3"
           value={title}
           onChangeText={onTitleChange}
           placeholder="Untitled"
@@ -42,14 +44,16 @@ export default function EditableHeader({
         />
       </View>
 
-      <View className="gap-2">
+      <View className="gap-1.5">
         <View className="flex-row items-center justify-between">
-          <Text className="text-sm font-body-bold text-ink-soft">Deadline</Text>
+          <Text className="text-xs font-body-bold text-ink-soft uppercase tracking-wider">
+            Deadline
+          </Text>
           {deadlineLow && (
             <View className="flex-row items-center gap-1">
               <Ionicons name="help-circle-outline" size={14} color="#9A6400" />
               <Text className="text-xs font-body-bold text-soon-ink">
-                Check this
+                Double-check date
               </Text>
             </View>
           )}
@@ -58,10 +62,10 @@ export default function EditableHeader({
         {deadline ? (
           <TouchableOpacity onPress={() => setShowAndroidPicker(true)}>
             <View
-              className={`flex-row items-center rounded-2xl px-4 py-3 border ${
+              className={`flex-row items-center justify-between rounded-2xl px-4 py-3 border ${
                 deadlineLow
                   ? "bg-soon-soft border-dashed border-soon"
-                  : "bg-paper border-line"
+                  : "bg-cream/60 border-line"
               }`}
             >
               {Platform.OS === "ios" ? (
@@ -69,19 +73,19 @@ export default function EditableHeader({
                   value={deadline}
                   mode="date"
                   display="compact"
-                  onValueChange={handleChange}
+                  onChange={handleChange}
                 />
               ) : (
                 <>
                   <Text className="text-base font-body-medium text-ink">
                     {deadline.toDateString()}
                   </Text>
+                  <Ionicons name="calendar-outline" size={18} color="#C2531A" />
                   {showAndroidPicker && (
                     <DateTimePicker
                       value={deadline}
                       mode="date"
-                      onValueChange={handleChange}
-                      onDismiss={() => setShowAndroidPicker(false)}
+                      onChange={handleChange}
                     />
                   )}
                 </>
@@ -90,11 +94,12 @@ export default function EditableHeader({
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            className="bg-paper border border-dashed border-line rounded-2xl px-4 py-4 items-center"
+            className="bg-cream/40 border border-dashed border-brand/40 rounded-2xl px-4 py-3.5 items-center justify-center flex-row gap-2"
             onPress={() => onDeadlineChange(new Date())}
           >
-            <Text className="text-sm font-body-bold text-brand-ink">
-              + Add deadline
+            <Ionicons name="add-circle-outline" size={18} color="#C2531A" />
+            <Text className="text-sm font-body-bold text-brand">
+              Add deadline
             </Text>
           </TouchableOpacity>
         )}

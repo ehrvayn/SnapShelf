@@ -22,8 +22,7 @@ export default function FloatingNav() {
       className="absolute left-5 right-5"
     >
       <View
-        className="absolute bottom-0 left-12 right-12 h-16 bg-paper rounded-full border border-line"
-        style={softShadow}
+        className="absolute bottom-0 left-12 right-12 h-16 bg-brand rounded-full  border-brand-dark/20"
       />
 
       <View
@@ -34,36 +33,36 @@ export default function FloatingNav() {
           activeOpacity={0.6}
           onPress={() => !homeActive && router.navigate("/home")}
           className={`w-16 h-12 mb-2 rounded-full items-center justify-center ${
-            homeActive ? "bg-brand-soft" : ""
+            homeActive ? "bg-cream/20" : ""
           }`}
         >
           <Ionicons
             name={homeActive ? "home" : "home-outline"}
             size={26}
-            color={homeActive ? "#C2531A" : "#A39DB0"}
+            color={homeActive ? "#FFF8EC" : "rgba(255, 248, 236, 0.55)"}
           />
         </TouchableOpacity>
 
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={() => router.navigate("/")}
-          className="w-[72px] h-[72px] mb-3 rounded-full bg-brand items-center justify-center border-4 border-cream"
+          className="w-[72px] h-[72px] mb-3 rounded-full bg-cream items-center justify-center border-4 border-brand"
           style={softShadow}
         >
-          <Ionicons name="camera" size={30} color="#fff" />
+          <Ionicons name="camera" size={30} color="#C2531A" />
         </TouchableOpacity>
 
         <TouchableOpacity
           activeOpacity={0.6}
           onPress={() => !libraryActive && router.navigate("/library")}
           className={`w-16 h-12 mb-2 rounded-full items-center justify-center ${
-            libraryActive ? "bg-brand-soft" : ""
+            libraryActive ? "bg-cream/20" : ""
           }`}
         >
           <Ionicons
             name={libraryActive ? "albums" : "albums-outline"}
             size={26}
-            color={libraryActive ? "#C2531A" : "#A39DB0"}
+            color={libraryActive ? "#FFF8EC" : "rgba(255, 248, 236, 0.55)"}
           />
         </TouchableOpacity>
       </View>

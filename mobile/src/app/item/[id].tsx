@@ -2,13 +2,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import DeleteItemModal from "../../components/modal/DeleteItemModal";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import EditableHeader from "../../components/item/Editableheader";
 import FieldRow, { formatKey } from "../../components/item/Fieldrow";
 import ReviewBanner from "../../components/item/Reviewbanner";
+import ImageSection from "../../components/item/ImageSection";
+import DeleteItemModal from "../../components/modal/DeleteItemModal";
 import { getCategory } from "../../constants/categories";
-import { getTone } from "../../constants/tones";
+import { getTone, softShadow } from "../../constants/tones";
 import {
   confirmItem,
   deleteItem,
@@ -69,7 +70,9 @@ export default function Review() {
       <>
         <Stack.Screen options={{ title: "Loading..." }} />
         <View className="flex-1 items-center justify-center bg-cream">
-          <Text className="text-ink-faint font-body-medium">Loading...</Text>
+          <Text className="text-ink-faint font-body-medium">
+            Loading details...
+          </Text>
         </View>
       </>
     );
@@ -168,21 +171,22 @@ export default function Review() {
     <>
       <Stack.Screen
         options={{
-          title: needsReview ? "Review" : "Details",
+          title: needsReview ? "Review Snap" : "Item Details",
           headerStyle: { backgroundColor: "#FFF8EC" },
           headerShadowVisible: false,
           headerTintColor: "#2B2438",
           headerTitleStyle: { fontFamily: "Nunito_800ExtraBold" },
           headerRight: () => (
-            <View className="flex-row items-center gap-5">
+            <View className="flex-row items-center gap-4">
               {!needsReview && (
                 <TouchableOpacity
                   disabled={isSaving}
                   onPress={() =>
                     isEditing ? handleSave() : setIsEditing(true)
                   }
+                  className="px-3 py-1.5 rounded-full bg-brand/10"
                 >
-                  <Text className="text-brand-ink font-body-bold text-base">
+                  <Text className="text-brand font-body-bold text-sm">
                     {isSaving ? "Saving..." : isEditing ? "Save" : "Edit"}
                   </Text>
                 </TouchableOpacity>
@@ -192,8 +196,9 @@ export default function Review() {
                 disabled={isSaving}
                 onPress={() => setShowDelete(true)}
                 hitSlop={10}
+                className="p-1.5"
               >
-                <Ionicons name="trash-outline" size={22} color="#C73E37" />
+                <Ionicons name="trash-outline" size={20} color="#C73E37" />
               </TouchableOpacity>
             </View>
           ),
@@ -202,36 +207,34 @@ export default function Review() {
 
       <ScrollView
         className="flex-1 bg-cream"
-        contentContainerClassName="p-5 pb-12 gap-5"
+        contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 20 }}
+        showsVerticalScrollIndicator={false}
       >
         {needsReview && <ReviewBanner labels={lowLabels} reviewing />}
 
-        {item.local_image_uri && (
-          <View className="bg-paper border border-line rounded-3xl overflow-hidden p-2">
-            <Image
-              className="w-full h-[400px] rounded-2xl"
-              source={{ uri: item.local_image_uri }}
-              resizeMode="contain"
-            />
-          </View>
-        )}
+        {item.local_image_uri && <ImageSection uri={item.local_image_uri} />}
 
         {fieldsEditable ? (
-          <EditableHeader
-            title={editedTitle}
-            onTitleChange={setEditedTitle}
-            deadline={editedDeadline}
-            onDeadlineChange={setEditedDeadline}
-            deadlineLow={deadlineLow}
-          />
+          <View
+            className="bg-paper border border-line rounded-3xl p-5"
+            style={softShadow}
+          >
+            <EditableHeader
+              title={editedTitle}
+              onTitleChange={setEditedTitle}
+              deadline={editedDeadline}
+              onDeadlineChange={setEditedDeadline}
+              deadlineLow={deadlineLow}
+            />
+          </View>
         ) : (
-          <View className="gap-3">
+          <View className="gap-3 px-1">
             <View className="flex-row items-center gap-2 flex-wrap">
               <View
-                className="flex-row items-center gap-1 rounded-full px-3 py-1"
+                className="flex-row items-center gap-1.5 rounded-full px-3 py-1 border border-line"
                 style={{ backgroundColor: cat.bg }}
               >
-                <Ionicons name={cat.icon} size={13} color={cat.fg} />
+                <Ionicons name={cat.icon} size={12} color={cat.fg} />
                 <Text
                   className="text-xs font-body-bold"
                   style={{ color: cat.fg }}
@@ -240,19 +243,21 @@ export default function Review() {
                 </Text>
               </View>
               {tone && (
-                <View className={`${tone.box} rounded-full px-3 py-1`}>
+                <View
+                  className={`${tone.box} rounded-full px-3 py-1 border border-line/20`}
+                >
                   <Text className={`text-xs font-body-bold ${tone.text}`}>
                     {tone.label}
                   </Text>
                 </View>
               )}
             </View>
-            <Text className="text-3xl font-display text-ink">
+            <Text className="text-2xl font-display text-ink">
               {item.title ?? "Untitled"}
             </Text>
             {item.deadline_at && (
-              <Text className="text-sm font-body-medium text-ink-soft">
-                {new Date(item.deadline_at).toDateString()}
+              <Text className="text-xs font-body-medium text-ink-soft">
+                Due: {new Date(item.deadline_at).toDateString()}
               </Text>
             )}
           </View>
@@ -261,9 +266,14 @@ export default function Review() {
         {!needsReview && <ReviewBanner labels={lowLabels} reviewing={false} />}
 
         {fields && fields.length > 0 && (
-          <View className="bg-paper rounded-3xl p-5 border border-line gap-4">
-            <Text className="text-lg font-heading text-ink">Details</Text>
-            <View className="gap-4">
+          <View
+            className="bg-paper rounded-3xl p-5 border border-line gap-4"
+            style={softShadow}
+          >
+            <Text className="text-base font-heading text-ink">
+              Extracted Information
+            </Text>
+            <View className="gap-3.5">
               {fields.map((field) => (
                 <FieldRow
                   key={field.id}
@@ -282,7 +292,8 @@ export default function Review() {
 
         {needsReview && (
           <TouchableOpacity
-            className="w-full bg-brand py-4 rounded-full items-center justify-center mt-1"
+            className="w-full bg-brand py-4 rounded-full items-center justify-center mt-2"
+            style={softShadow}
             activeOpacity={0.85}
             disabled={isSaving}
             onPress={handleSave}
@@ -291,8 +302,8 @@ export default function Review() {
               {isSaving
                 ? "Saving..."
                 : lowLabels.length > 0
-                  ? "Confirm anyway"
-                  : "Confirm"}
+                  ? "Confirm Details Anyway"
+                  : "Confirm & Save"}
             </Text>
           </TouchableOpacity>
         )}

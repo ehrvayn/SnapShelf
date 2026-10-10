@@ -5,24 +5,41 @@ import {
   FlashMode,
   useCameraPermissions,
 } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
 import { router, Stack } from "expo-router";
-import { useRef, useState } from "react";
-import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Animated,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Mochiku, { Mood } from "../components/Mochiku";
 import { insertItem, saveExtractedData } from "../db/items";
 import { savePhotoPermanently } from "../services/photos";
 import { uploadPhoto } from "../services/upload";
 
 type Status = "idle" | "processing" | "retrying" | "done" | "error";
+type ActiveStatus = Exclude<Status, "idle">;
 
-const STATUS_COPY: Record<Exclude<Status, "idle">, string> = {
+const STATUS_COPY: Record<ActiveStatus, string> = {
   processing: "Reading your photo...",
   retrying: "Service busy, retrying...",
   done: "Saved to your shelf",
   error: "Saved to drafts. Will process when back online",
 };
 
+const STATUS_MOOD: Record<ActiveStatus, Mood> = {
+  processing: "thinking",
+  retrying: "thinking",
+  done: "happy",
+  error: "worried",
+};
+
+const SNAP_COOLDOWN_MS = 3000;
 const RETRY_HINT_DELAY_MS = 4000;
 
 const ZOOM_STEPS = [
@@ -34,6 +51,65 @@ const ZOOM_STEPS = [
 function Corner({ className }: { className: string }) {
   return <View className={`absolute w-9 h-9 border-brand ${className}`} />;
 }
+
+function StatusPopup({ status }: { status: ActiveStatus }) {
+  const scale = useRef(new Animated.Value(0.85)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 6,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [scale, opacity]);
+
+  const busy = status === "processing" || status === "retrying";
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(15,14,19,0.55)",
+        opacity,
+      }}
+    >
+      <Animated.View
+        style={{ alignItems: "center", gap: 12, transform: [{ scale }] }}
+      >
+        <Mochiku mood={STATUS_MOOD[status]} height={200} width={110} />
+
+        <View className="flex-row items-center gap-2 bg-paper rounded-3xl px-5 py-3 max-w-[300px]">
+          {busy && <ActivityIndicator size="small" color="#FF8A4C" />}
+          {status === "done" && (
+            <Ionicons name="checkmark-circle" size={20} color="#1F8A6B" />
+          )}
+          {status === "error" && (
+            <Ionicons name="alert-circle" size={20} color="#9A6400" />
+          )}
+          <Text className="flex-shrink text-ink text-sm font-body-bold text-center">
+            {STATUS_COPY[status]}
+          </Text>
+        </View>
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
 export default function CameraScreen() {
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
@@ -42,6 +118,7 @@ export default function CameraScreen() {
   const [flash, setFlash] = useState<FlashMode>("off");
   const [status, setStatus] = useState<Status>("idle");
   const [zoom, setZoom] = useState(0);
+  const [cooling, setCooling] = useState(false);
   const zoomStart = useRef(0);
 
   const pinch = Gesture.Pinch()
@@ -65,6 +142,7 @@ export default function CameraScreen() {
   if (!permission.granted) {
     return (
       <View className="flex-1 bg-cream items-center justify-center px-8 gap-6">
+        <Stack.Screen options={{ headerShown: false }} />
         <View className="w-20 h-20 rounded-3xl bg-brand-soft items-center justify-center">
           <Ionicons name="camera-outline" size={36} color="#C2531A" />
         </View>
@@ -90,13 +168,10 @@ export default function CameraScreen() {
   }
 
   const busy = status === "processing" || status === "retrying";
+  const locked = cooling || status !== "idle";
 
-  const snap = async () => {
-    if (busy) return;
-    const photo = await cameraRef.current?.takePictureAsync({ quality: 0.7 });
-    if (!photo) return;
-
-    const permanentUri = savePhotoPermanently(photo.uri);
+  const processPhoto = async (uri: string) => {
+    const permanentUri = savePhotoPermanently(uri);
     const itemId = await insertItem(permanentUri);
     setStatus("processing");
 
@@ -120,6 +195,26 @@ export default function CameraScreen() {
       clearTimeout(retryHintTimer);
       setTimeout(() => setStatus("idle"), 2500);
     }
+  };
+
+  const snap = async () => {
+    if (locked) return;
+    setCooling(true);
+    setTimeout(() => setCooling(false), SNAP_COOLDOWN_MS);
+
+    const photo = await cameraRef.current?.takePictureAsync({ quality: 0.7 });
+    if (!photo) return;
+    await processPhoto(photo.uri);
+  };
+
+  const pickFromGallery = async () => {
+    if (locked) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.7,
+    });
+    if (result.canceled) return;
+    await processPhoto(result.assets[0].uri);
   };
 
   const flip = () => {
@@ -155,7 +250,7 @@ export default function CameraScreen() {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => setFlash(flash === "off" ? "on" : "off")}
-            className="w-11 h-11 rounded-full bg-black/40 items-center justify-center"
+            className="w-14 h-14 rounded-2xl bg-black/40 border border-white/30 items-center justify-center"
           >
             <Ionicons
               name={flash === "on" ? "flash" : "flash-off"}
@@ -163,10 +258,13 @@ export default function CameraScreen() {
               color={flash === "on" ? "#fde047" : "#fff"}
             />
           </TouchableOpacity>
-
-          <Text className="text-white text-base font-bold tracking-wide">
-            mochiku
-          </Text>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.push("/home")}
+            className="w-14 h-14 rounded-2xl bg-black/40 border border-white/30 items-center justify-center"
+          >
+            <Ionicons name="home-outline" size={20} color="#fff" />
+          </TouchableOpacity>
         </View>
 
         <View
@@ -181,23 +279,10 @@ export default function CameraScreen() {
           </View>
 
           <View className="mt-5 h-9 justify-center">
-            {status === "idle" ? (
+            {status === "idle" && (
               <Text className="text-white/80 text-sm font-body-medium">
                 Fit the document inside the frame
               </Text>
-            ) : (
-              <View className="flex-row items-center gap-2 bg-night/80 rounded-full px-4 py-2">
-                {busy && <ActivityIndicator size="small" color="#fff" />}
-                {status === "done" && (
-                  <Ionicons name="checkmark-circle" size={18} color="#4ade80" />
-                )}
-                {status === "error" && (
-                  <Ionicons name="alert-circle" size={18} color="#fbbf24" />
-                )}
-                <Text className="text-white text-sm font-body-bold">
-                  {STATUS_COPY[status]}
-                </Text>
-              </View>
             )}
           </View>
         </View>
@@ -215,8 +300,8 @@ export default function CameraScreen() {
                 }`}
               >
                 <Text
-                  className={`text-sm font-bold ${
-                    active ? "text-gray-900" : "text-white"
+                  className={`text-sm font-body-bold ${
+                    active ? "text-ink" : "text-white"
                   }`}
                 >
                   {z.label}
@@ -229,20 +314,23 @@ export default function CameraScreen() {
         <View className="flex-row items-center justify-between px-8">
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => router.push("/home")}
-            className="w-14 h-14 rounded-2xl bg-black/40 border border-white/30 overflow-hidden items-center justify-center"
+            disabled={locked}
+            onPress={pickFromGallery}
+            className="w-14 h-14 rounded-2xl bg-black/40 border border-white/30 items-center justify-center"
           >
-            <Ionicons name="home-outline" size={20} color="#fff" />
+            <Ionicons name="images-outline" size={22} color="#fff" />
           </TouchableOpacity>
 
           <TouchableOpacity
             activeOpacity={0.8}
-            disabled={busy}
+            disabled={locked}
             onPress={snap}
             className="w-20 h-20 rounded-full border-4 border-white items-center justify-center"
           >
             <View
-              className={`w-[60px] h-[60px] rounded-full items-center justify-center ${busy ? "bg-white/60" : "bg-white"}`}
+              className={`w-[60px] h-[60px] rounded-full items-center justify-center ${
+                locked ? "bg-white/60" : "bg-white"
+              }`}
             >
               {busy && <ActivityIndicator color="#FF8A4C" />}
             </View>
@@ -251,11 +339,13 @@ export default function CameraScreen() {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={flip}
-            className="w-14 h-14 rounded-full bg-black/40 items-center justify-center"
+            className="w-14 h-14 rounded-2xl bg-black/40 border border-white/30 items-center justify-center"
           >
             <Ionicons name="camera-reverse-outline" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
+
+        {status !== "idle" && <StatusPopup status={status} />}
       </View>
     </View>
   );

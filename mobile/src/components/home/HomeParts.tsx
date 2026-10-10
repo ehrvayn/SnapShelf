@@ -1,11 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { ReactNode } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { getCategory } from "../../constants/categories";
 import { getTone, softShadow } from "../../constants/tones";
 import { DeadlineEntry, MONTHS } from "../../hooks/useHomeData";
 import { Item } from "../../types/item";
+import Mochiku, { Mood } from "../Mochiku";
 
 const openItem = (id: string) =>
   router.push({ pathname: "/item/[id]", params: { id } });
@@ -20,9 +20,9 @@ const shortDate = (iso: string) =>
 function CategoryTag({ value }: { value: string | null }) {
   const c = getCategory(value);
   return (
-    <View className="flex-row items-center gap-1">
+    <View className="flex-row items-center w-auto gap-1.5 px-2.5 py-1 rounded-full bg-cream border border-line">
       <Ionicons name={c.icon} size={12} color={c.fg} />
-      <Text className="text-xs font-body-bold" style={{ color: c.fg }}>
+      <Text className="text-[11px] font-body-bold" style={{ color: c.fg }}>
         {c.label}
       </Text>
     </View>
@@ -31,23 +31,23 @@ function CategoryTag({ value }: { value: string | null }) {
 
 export function MascotHeader({
   message,
-  avatar,
+  mood,
 }: {
   message: string;
-  avatar?: ReactNode;
+  mood: Mood;
 }) {
   return (
-    <View className="flex-row items-center gap-4 px-5 mb-8">
-      {avatar ?? (
-        <View className="w-16 h-16 rounded-full bg-brand-soft items-center justify-center">
-          <Ionicons name="paw" size={26} color="#C2531A" />
-        </View>
-      )}
+    <View className="flex-row items-center gap-4">
+      <View className="items-center justify-center">
+        <Mochiku mood={mood} height={150} width={110} />
+      </View>
       <View className="flex-1 justify-center">
-        <View className="bg-paper border border-line rounded-3xl px-4 py-3.5">
-          <Text className="text-base font-heading text-ink">{message}</Text>
+        <View className="relative rounded-3xl p-4 bg-paper border border-line shadow-sm" style={softShadow}>
+          <Text className="text-sm font-heading text-ink leading-snug">
+            {message}
+          </Text>
+          <View className="absolute -left-2 top-6 w-3 h-3 rotate-45 bg-paper border-l border-b border-line" />
         </View>
-        <View className="absolute -left-1.5 top-1/2 -mt-1.5 w-3 h-3 bg-paper border-l border-b border-line rotate-45" />
       </View>
     </View>
   );
@@ -62,31 +62,34 @@ export function NextUpCard({ entry }: { entry: DeadlineEntry }) {
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={() => openItem(item.id)}
-      className="mx-5 mb-8 flex-row bg-paper border border-line rounded-3xl overflow-hidden"
+      className="flex-row bg-paper border border-line rounded-3xl overflow-hidden"
       style={softShadow}
     >
-      <View className={`w-24 items-center justify-center py-5 ${tone.hero}`}>
+      <View className={`w-28 items-center justify-center py-5 px-3 ${tone.hero}`}>
         <Text
           className={`font-display ${tone.heroText} ${
-            days > 1 ? "text-4xl" : "text-lg"
+            days > 1 ? "text-3xl" : "text-base"
           }`}
+          numberOfLines={1}
         >
           {word}
         </Text>
         {days > 1 && (
-          <Text className={`text-sm font-body-bold ${tone.heroSub}`}>
+          <Text className={`text-xs font-body-bold mt-0.5 ${tone.heroSub}`}>
             days left
           </Text>
         )}
       </View>
 
-      <View className="flex-1 p-4 gap-1.5">
-        <Text className="text-xs font-body-bold text-ink-faint">Next up</Text>
-        <Text className="text-lg font-heading text-ink" numberOfLines={2}>
+      <View className="flex-1 p-4 justify-center gap-2">
+        <Text className="text-[11px] font-body-bold text-ink-faint uppercase tracking-wider">
+          Next up
+        </Text>
+        <Text className="text-base font-heading text-ink" numberOfLines={2}>
           {item.title ?? "Untitled"}
         </Text>
-        <View className="flex-row items-center gap-3">
-          <Text className="text-sm font-body-medium text-ink-soft">
+        <View className="flex-row items-center justify-between pt-1">
+          <Text className="text-xs font-body-medium text-ink-soft">
             {shortDate(item.deadline_at!)}
           </Text>
           <CategoryTag value={item.category} />
@@ -105,7 +108,7 @@ export function SectionHeader({
 }) {
   return (
     <View className="px-5 mb-3">
-      <Text className="text-xl font-heading text-ink">{title}</Text>
+      <Text className="text-lg font-heading text-ink">{title}</Text>
       {subtitle && (
         <Text className="text-xs font-body-medium text-ink-faint mt-0.5">
           {subtitle}
@@ -115,36 +118,31 @@ export function SectionHeader({
   );
 }
 
-/** Compact card for an item whose deadline the AI was unsure about. */
 export function ReviewCard({ item }: { item: Item }) {
   return (
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={() => openItem(item.id)}
-      className="w-72 flex-row items-center gap-3 bg-paper border border-line rounded-3xl p-3 mr-3"
+      className="w-72 flex-row items-center gap-3.5 bg-paper border border-line rounded-3xl p-3.5"
+      style={softShadow}
     >
       <Image
         source={{ uri: item.local_image_uri }}
-        className="w-14 h-14 rounded-2xl bg-cream"
+        className="w-16 h-16 rounded-2xl bg-cream border border-line"
         resizeMode="cover"
       />
-      <View className="flex-1 gap-1">
-        <Text className="text-base font-heading text-ink" numberOfLines={1}>
+      <View className="flex-1 gap-1.5">
+        <Text className="text-sm font-heading text-ink" numberOfLines={1}>
           {item.title ?? "Untitled"}
         </Text>
-        <View className="flex-row items-center gap-1.5">
-          <View className="w-2 h-2 rounded-full bg-soon" />
-          <Text
-            className="flex-1 text-xs font-body-bold text-soon-ink"
-            numberOfLines={1}
-          >
-            {item.deadline_at
-              ? `Read as ${shortDate(item.deadline_at)}`
-              : "No date found"}
+        <View className="flex-row items-center gap-1.5 bg-soon-soft px-2.5 py-1 rounded-full self-start">
+          <View className="w-1.5 h-1.5 rounded-full bg-soon" />
+          <Text className="text-[11px] font-body-bold text-soon-ink" numberOfLines={1}>
+            {item.deadline_at ? `Check ${shortDate(item.deadline_at)}` : "Needs date"}
           </Text>
         </View>
       </View>
-      <Ionicons name="chevron-forward" size={18} color="#D9D0C0" />
+      <Ionicons name="chevron-forward" size={16} color="#A39DB0" />
     </TouchableOpacity>
   );
 }
@@ -165,24 +163,25 @@ function DeadlineRow({
       activeOpacity={0.7}
       onPress={() => openItem(item.id)}
       className={`flex-row items-center gap-4 px-4 py-3.5 ${
-        first ? "" : "border-t border-line"
+        first ? "" : "border-t border-line/60"
       }`}
     >
-      <View className="w-10 items-center">
-        <Text className="text-xs font-body-bold text-ink-faint">
+      <View className="w-11 items-center justify-center bg-cream/60 py-1.5 rounded-2xl border border-line/40">
+        <Text className="text-[10px] font-body-bold text-ink-faint uppercase">
           {MONTHS[date.getMonth()]}
         </Text>
-        <Text className="text-xl font-display text-ink">{date.getDate()}</Text>
+        <Text className="text-lg font-display text-ink leading-tight">
+          {date.getDate()}
+        </Text>
       </View>
 
-      <View className="flex-1 gap-0.5">
-        <Text className="text-base font-heading text-ink" numberOfLines={1}>
+      <View className="flex-1 flex-col items-start gap-1">
+        <Text className="text-sm font-heading text-ink" numberOfLines={1}>
           {item.title ?? "Untitled"}
         </Text>
         <CategoryTag value={item.category} />
       </View>
 
-      {/* urgency is carried by this one colored label */}
       <Text className={`text-xs font-body-bold ${tone.text}`}>
         {tone.label}
       </Text>
@@ -200,13 +199,16 @@ export function DeadlineGroup({
   return (
     <View className="px-5 mb-5">
       <Text
-        className={`text-sm font-body-bold mb-2 ${
-          title === "Overdue" ? "text-urgent-ink" : "text-ink-soft"
+        className={`text-xs font-body-bold mb-2 uppercase tracking-wider ${
+          title === "Overdue" ? "text-urgent-ink" : "text-ink-faint"
         }`}
       >
         {title}
       </Text>
-      <View className="bg-paper border border-line rounded-3xl overflow-hidden">
+      <View
+        className="bg-paper border border-line rounded-3xl overflow-hidden"
+        style={softShadow}
+      >
         {items.map((e, i) => (
           <DeadlineRow key={e.item.id} entry={e} first={i === 0} />
         ))}

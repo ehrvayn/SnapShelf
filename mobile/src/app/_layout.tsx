@@ -17,6 +17,15 @@ import {
 } from "@expo-google-fonts/dm-sans";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
+import {
+  configureReanimatedLogger,
+  ReanimatedLogLevel,
+} from "react-native-reanimated";
+
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false,
+});
 
 const queryClient = new QueryClient();
 SplashScreen.preventAutoHideAsync();
@@ -34,10 +43,7 @@ export default function RootLayout() {
     if (loaded) SplashScreen.hideAsync();
   }, [loaded]);
 
-  useEffect(() => {
-    registerForNotificationsAsync();
-  }, []);
-
+  // Cleaned up duplicate notification effect
   useEffect(() => {
     registerForNotificationsAsync().then((granted) => {
       if (granted) syncReminders();

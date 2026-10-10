@@ -21,13 +21,13 @@ export default function FieldRow({
   return (
     <View className="gap-1.5">
       <View className="flex-row items-center justify-between">
-        <Text className="text-xs font-body-bold text-ink-soft">
+        <Text className="text-xs font-body-bold text-ink-faint">
           {formatKey(field.key)}
         </Text>
         {low && (
           <View className="flex-row items-center gap-1">
-            <Ionicons name="help-circle-outline" size={14} color="#9A6400" />
-            <Text className="text-xs font-body-bold text-soon-ink">
+            <Ionicons name="alert-circle-outline" size={13} color="#9A6400" />
+            <Text className="text-[11px] font-body-bold text-soon-ink">
               Check this
             </Text>
           </View>
@@ -36,22 +36,26 @@ export default function FieldRow({
 
       {editable ? (
         <TextInput
-          className={`text-base font-body-medium text-ink rounded-2xl px-4 py-3 border ${
+          className={`text-sm font-body-medium text-ink rounded-2xl px-4 py-3 border ${
             low
               ? "bg-soon-soft border-dashed border-soon"
-              : "bg-cream border-line"
+              : "bg-cream/60 border-line"
           }`}
           value={value}
           onChangeText={onChange}
+          placeholder="Unspecified"
+          placeholderTextColor="#A39DB0"
         />
       ) : (
-        <Text
-          className={`text-base font-body-medium text-ink rounded-2xl px-4 py-3 ${
-            low ? "bg-soon-soft border border-dashed border-soon" : ""
+        <View
+          className={`rounded-2xl px-4 py-3 ${
+            low ? "bg-soon-soft border border-dashed border-soon" : "bg-cream/40 border border-line/40"
           }`}
         >
-          {field.value}
-        </Text>
+          <Text className="text-sm font-body-medium text-ink">
+            {field.value || "—"}
+          </Text>
+        </View>
       )}
     </View>
   );

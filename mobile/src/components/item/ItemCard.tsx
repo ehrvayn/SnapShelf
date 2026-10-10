@@ -1,9 +1,9 @@
 import { router } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
-import { getCategory } from "../constants/categories";
-import { getTone } from "../constants/tones";
-import { daysUntil } from "../hooks/useHomeData";
-import { Item } from "../types/item";
+import { getCategory } from "../../constants/categories";
+import { getTone } from "../../constants/tones";
+import { daysUntil } from "../../hooks/useHomeData";
+import { Item } from "../../types/item";
 
 const STATUS_LABELS: Record<string, string> = {
   uploaded: "Processing",

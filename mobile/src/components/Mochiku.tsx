@@ -1,60 +1,32 @@
-import { View } from "react-native";
+import { Image } from "react-native";
 
-type Mood = "idle" | "happy" | "sleeping";
+export type Mood =
+  | "idle"
+  | "happy"
+  | "worried"
+  | "confused"
+  | "thinking"
+  | "sleeping";
+
+const IMAGES: Record<Mood, number> = {
+  idle: require("../../assets/images/MochikuPoses/Mochiku-idle.png"),
+  happy: require("../../assets/images/MochikuPoses/Mochiku-happy.png"),
+  worried: require("../../assets/images/MochikuPoses/Mochiku-worried.png"),
+  confused: require("../../assets/images/MochikuPoses/Mochiku-confused.png"),
+  thinking: require("../../assets/images/MochikuPoses/Mochiku-thinking.png"),
+  sleeping: require("../../assets/images/MochikuPoses/Mochiku-sleeping.png"),
+};
 
 export default function Mochiku({
   mood = "idle",
-  size = 56,
+  height,
+  width,
 }: {
   mood?: Mood;
-  size?: number;
+  height?: number;
+  width?: number;
 }) {
-  const sleeping = mood === "sleeping";
-  const happy = mood === "happy";
-
   return (
-    <View
-      style={{ width: size, height: size * 0.85 }}
-      className="bg-cream rounded-[999px] items-center justify-center relative border border-line"
-    >
-      {/* cheeks */}
-      <View className="absolute flex-row w-full justify-between px-2 top-[38%]">
-        <View
-          style={{ width: size * 0.22, height: size * 0.22 }}
-          className="rounded-full bg-brand-soft"
-        />
-        <View
-          style={{ width: size * 0.22, height: size * 0.22 }}
-          className="rounded-full bg-brand-soft"
-        />
-      </View>
-
-      {/* eyes */}
-      <View className="flex-row gap-3">
-        {sleeping ? (
-          <>
-            <View className="w-2.5 h-0.5 rounded-full bg-ink" />
-            <View className="w-2.5 h-0.5 rounded-full bg-ink" />
-          </>
-        ) : (
-          <>
-            <View
-              style={{ height: happy ? size * 0.08 : size * 0.12 }}
-              className="w-1.5 rounded-full bg-ink"
-            />
-            <View
-              style={{ height: happy ? size * 0.08 : size * 0.12 }}
-              className="w-1.5 rounded-full bg-ink"
-            />
-          </>
-        )}
-      </View>
-
-      {sleeping && (
-        <View className="absolute -top-2 -right-1">
-          <View className="w-2 h-2 rounded-sm bg-ink-faint rotate-45" />
-        </View>
-      )}
-    </View>
+    <Image source={IMAGES[mood]} style={{ width: width, height: height }} />
   );
 }

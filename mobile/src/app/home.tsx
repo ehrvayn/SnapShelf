@@ -1,6 +1,9 @@
 import { Stack } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Mood } from "../components/Mochiku";
 import {
   DeadlineGroup,
   MascotHeader,
@@ -10,23 +13,68 @@ import {
 } from "../components/home/HomeParts";
 import { DeadlineEntry, useHomeData } from "../hooks/useHomeData";
 
-function getMessage(s: {
+type StatusItem = { id: string; message: string; mood: Mood };
+
+function getStates(s: {
   hero: DeadlineEntry | null;
   overdueCount: number;
   weekCount: number;
   pendingCount: number;
-}) {
-  if (s.overdueCount > 0)
-    return `${s.overdueCount} overdue. Let's start there.`;
-  if (s.hero && s.hero.days <= 1)
-    return s.hero.days === 0
-      ? "Something is due today."
-      : "Something is due tomorrow.";
-  if (s.pendingCount > 0)
-    return `${s.pendingCount} ${s.pendingCount === 1 ? "date needs" : "dates need"} a quick check.`;
-  if (s.weekCount > 0) return `${s.weekCount} due this week. You're on track.`;
-  if (s.hero) return `Nothing urgent. Next deadline is in ${s.hero.days} days.`;
-  return "Nothing to remember yet. Snap something!";
+}): StatusItem[] {
+  const states: StatusItem[] = [];
+
+  if (s.hero && s.hero.days <= 1) {
+    states.push({
+      id: "hero-urgent",
+      message:
+        s.hero.days === 0
+          ? "Clock's ticking! Something needs your attention today."
+          : "Heads up! You have a deadline landing tomorrow.",
+      mood: "worried",
+    });
+  }
+
+  if (s.overdueCount > 0) {
+    states.push({
+      id: "overdue",
+      message: `${s.overdueCount} item${s.overdueCount > 1 ? "s slipped past" : " slipped past"}. Let's clear ${s.overdueCount > 1 ? "them" : "it"} out first!`,
+      mood: "worried",
+    });
+  }
+
+  if (s.pendingCount > 0) {
+    states.push({
+      id: "pending",
+      message: `I spotted ${s.pendingCount} photo${s.pendingCount === 1 ? "" : "s"} with fuzzy details. Mind double-checking?`,
+      mood: "confused",
+    });
+  }
+
+  if (s.weekCount > 0) {
+    states.push({
+      id: "week",
+      message: `Looking solid! ${s.weekCount} item${s.weekCount === 1 ? "" : "s"} scheduled for this week.`,
+      mood: "happy",
+    });
+  }
+
+  if (states.length === 0) {
+    if (s.hero) {
+      states.push({
+        id: "hero-idle",
+        message: `Smooth sailing! Nothing urgent until ${s.hero.days} days from now.`,
+        mood: "happy",
+      });
+    } else {
+      states.push({
+        id: "empty",
+        message: "Your shelf is totally clear. Snap a photo to catch dates!",
+        mood: "sleeping",
+      });
+    }
+  }
+
+  return states;
 }
 
 export default function Home() {
@@ -41,6 +89,34 @@ export default function Home() {
     refresh,
   } = useHomeData();
 
+  const states = useMemo(
+    () =>
+      getStates({
+        hero,
+        overdueCount,
+        weekCount,
+        pendingCount: pending.length,
+      }),
+    [hero, overdueCount, weekCount, pending.length]
+  );
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [states.length]);
+
+  useEffect(() => {
+    if (states.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % states.length);
+    }, 4500);
+
+    return () => clearInterval(interval);
+  }, [states.length]);
+
+  const activeState = states[currentIndex] ?? states[0];
   const isEmpty = !hero && pending.length === 0 && groups.length === 0;
 
   return (
@@ -63,27 +139,50 @@ export default function Home() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <MascotHeader
-          message={getMessage({
-            hero,
-            overdueCount,
-            weekCount,
-            pendingCount: pending.length,
-          })}
-        />
+        <View className="mb-6 px-5 min-h-[140px] justify-center">
+          <Animated.View
+            key={activeState.id}
+            entering={FadeIn.duration(350)}
+            exiting={FadeOut.duration(200)}
+          >
+            <MascotHeader
+              message={activeState.message}
+              mood={activeState.mood}
+            />
+          </Animated.View>
 
-        {hero && <NextUpCard entry={hero} />}
+          {states.length > 1 && (
+            <View className="flex-row justify-center items-center gap-1.5 mt-3">
+              {states.map((st, idx) => (
+                <View
+                  key={st.id}
+                  className={`h-1.5 rounded-full transition-all ${
+                    idx === currentIndex
+                      ? "w-5 bg-brand border border-brand"
+                      : "w-1.5 bg-ink/10"
+                  }`}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+
+        {hero && (
+          <View className="px-5 mb-6">
+            <NextUpCard entry={hero} />
+          </View>
+        )}
 
         {pending.length > 0 && (
           <View className="mb-8">
             <SectionHeader
-              title="To confirm"
+              title="To Confirm"
               subtitle="Check the uncertainties from these photos"
             />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20 }}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
             >
               {pending.map((item) => (
                 <ReviewCard key={item.id} item={item} />
@@ -93,7 +192,7 @@ export default function Home() {
         )}
 
         {groups.length > 0 && (
-          <View>
+          <View className="space-y-4">
             <SectionHeader title="Upcoming" />
             {groups.map((g) => (
               <DeadlineGroup key={g.title} title={g.title} items={g.items} />
@@ -102,9 +201,17 @@ export default function Home() {
         )}
 
         {isEmpty && (
-          <Text className="text-sm font-body-medium text-ink-faint text-center px-10 mt-6">
-            Deadlines from your photos will show up here.
-          </Text>
+          <View className="mx-5 my-8 p-6 rounded-3xl bg-white/70 border border-line items-center justify-center">
+            <View className="w-12 h-12 rounded-full bg-brand-soft justify-center items-center mb-3">
+              <Text className="text-xl">💤</Text>
+            </View>
+            <Text className="text-base font-heading text-ink text-center mb-1">
+              Your Shelf is Empty
+            </Text>
+            <Text className="text-xs font-body-medium text-ink-faint text-center max-w-[240px]">
+              Deadlines from your scanned photos will show up here automatically.
+            </Text>
+          </View>
         )}
       </ScrollView>
     </View>

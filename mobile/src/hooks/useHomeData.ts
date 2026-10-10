@@ -47,9 +47,9 @@ export function useHomeData() {
       overdueCount: entries.filter((e) => e.days < 0).length,
       weekCount: entries.filter((e) => e.days >= 0 && e.days <= 7).length,
       groups: [
-        { title: "Overdue", items: rest.filter((e) => e.days < 0) },
         { title: "This week", items: rest.filter((e) => e.days >= 0 && e.days <= 7) },
         { title: "Later", items: rest.filter((e) => e.days > 7) },
+        { title: "Overdue", items: rest.filter((e) => e.days < 0) },
       ].filter((g) => g.items.length > 0),
     };
   }, [upcoming]);

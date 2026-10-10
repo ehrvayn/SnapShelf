@@ -152,8 +152,10 @@ export default function Library() {
                 </Text>
               </View>
             ) : (
-              <View className="flex-row items-center gap-3">
-                <Mochiku mood={items.length === 0 ? "sleeping" : "idle"} />
+              <View className="flex-row items-center ">
+                {items.length !== 0 && (
+                  <Mochiku mood={"idle"} height={70} width={70} />
+                )}
                 <View>
                   <Text className="text-3xl font-display text-ink">
                     Library
@@ -277,7 +279,7 @@ export default function Library() {
           contentContainerStyle={{ paddingBottom: 160 }}
           ListEmptyComponent={
             <View className="items-center gap-3 pt-16 px-10">
-              <Mochiku mood="sleeping" size={72} />
+              <Mochiku mood="sleeping" height={200} width={200} />
               <Text className="text-base font-heading text-ink-soft text-center mt-2">
                 {items.length === 0
                   ? "Nothing to remember yet"
